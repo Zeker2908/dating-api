@@ -1,0 +1,13 @@
+spring:
+  application:
+    name: config-server
+  cloud:
+    config:
+      server:
+        git:
+          uri: https://github.com/Zeker2908/config-repo
+          username: Zeker2908
+          password: ${GITHUB_PASSWORD}
+          clone-on-start: true
+server:
+  port: 8888
