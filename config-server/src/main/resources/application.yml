@@ -5,8 +5,8 @@ spring:
     config:
       server:
         git:
-          uri: https://github.com/Zeker2908/config-repo
-          username: Zeker2908
+          uri: ${CONFIG_REPO_URI}
+          username: ${CONFIG_REPO_USER}
           password: ${GITHUB_PASSWORD}
           clone-on-start: true
 server:
