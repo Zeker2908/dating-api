@@ -20,7 +20,6 @@ import ru.zeker.user_service.service.JwtService;
 
 import java.io.IOException;
 
-@Component
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
@@ -45,8 +44,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         jwt = authHeader.substring(BEARER_PREFIX.length());
         userEmail = jwtService.extractUsername(jwt);
 
-        if (userEmail!=null && SecurityContextHolder.getContext().getAuthentication()==null){
-            UserDetails userDetails = this.userDetailsService.loadUserByUsername(userEmail);
+        if (StringUtils.isNotEmpty(userEmail)  && SecurityContextHolder.getContext().getAuthentication()==null){
+            UserDetails userDetails = userDetailsService.loadUserByUsername(userEmail);
             if (jwtService.isTokenValid(jwt, userDetails)){
                 UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(
                         userDetails,
