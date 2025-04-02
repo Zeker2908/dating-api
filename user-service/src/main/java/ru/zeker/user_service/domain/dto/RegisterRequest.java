@@ -13,19 +13,19 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class RegisterRequest {
-    @Size(min = 5, max = 255, message = "Адрес электронной почты должен содержать от 5 до 255 символов")
-    @NotBlank(message = "Адрес электронной почты не может быть пустыми")
-    @Email(message = "Email адрес должен быть в формате user@example.com")
+    @Size(min = 5, max = 255, message = "Email address must be between 5 and 255 characters long")
+    @NotBlank(message = "Email address cannot be empty")
+    @Email(message = "Email address must be in the format user@example.com")
     private String email;
 
-    @Size(min = 8, max = 255, message = "Длина пароля должна быть от 8 до 255 символов")
-    @NotBlank(message = "Пароль не может быть пустыми")
+    @Size(min = 8, max = 255, message = "Password length must be between 8 and 255 characters")
+    @NotBlank(message = "Password cannot be empty")
     private String password;
 
-    @Size(min = 1, max = 25, message = "Длина имени должна быть не более 25 символов")
-    @NotBlank(message = "Имя не должно быть пустым")
+    @Size(min = 1, max = 25, message = "The name length must be no more than 25 characters.")
+    @NotBlank(message = "The name must not be empty")
     private String firstName;
 
-    @Size(min = 1, max = 25, message = "Длина фамилии должна быть не более 25 символов")
+    @Size(min = 1, max = 25, message = "The length of the last name must be no more than 25 characters.")
     private String lastName;
 }
