@@ -1,10 +1,12 @@
 package ru.zeker.user_service.service.imp;
 
-import jakarta.ws.rs.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ru.zeker.user_service.domain.model.RefreshToken;
 import ru.zeker.user_service.domain.model.User;
+import ru.zeker.user_service.exception.RefreshTokenExpiredException;
+import ru.zeker.user_service.exception.RefreshTokenNotFoundException;
 import ru.zeker.user_service.repository.RefreshTokenRepository;
 import ru.zeker.user_service.service.JwtService;
 import ru.zeker.user_service.service.RefreshTokenService;
@@ -27,30 +29,32 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
                 .expiryDate(jwtService.extractExpiration(token))
                 .user(user)
                 .build();
-        refreshTokenRepository.save(refreshToken);
-        return refreshToken.getToken();
+        return refreshTokenRepository.save(refreshToken).getToken();
     }
 
-    //TODO: сделать кастомные эксепшены
     @Override
     public RefreshToken verifyRefreshToken(String token) {
-        var refreshToken = refreshTokenRepository.findByToken(token).orElseThrow(()->new NotFoundException("Invalid refresh token"));
-        if(refreshToken.getExpiryDate().before(new Date())){
+        var refreshToken = refreshTokenRepository.findByToken(token)
+                .orElseThrow(RefreshTokenNotFoundException::new);
+
+        if (refreshToken.getExpiryDate().before(new Date())) {
             refreshTokenRepository.delete(refreshToken);
-            throw new NotFoundException("Invalid refresh token");
+            throw new RefreshTokenExpiredException();
         }
         return refreshToken;
     }
 
     @Override
     public String rotateRefreshToken(RefreshToken token) {
+        User user = token.getUser();
         refreshTokenRepository.delete(token);
-        return createRefreshToken(token.getUser());
+        return createRefreshToken(user);
     }
 
     @Override
-    public void deleteByUser(User user) {
-        var token = refreshTokenRepository.findByUser(user).orElseThrow(()->new NotFoundException("Refresh token not found"));
-        refreshTokenRepository.delete(token);
+    @Transactional
+    public void deleteByUserId(Long id) {
+        refreshTokenRepository.findByUserId(id).ifPresent(refreshTokenRepository::delete);
     }
+
 }

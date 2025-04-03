@@ -1,11 +1,11 @@
 package ru.zeker.user_service.service.imp;
 
-import jakarta.persistence.EntityExistsException;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.zeker.user_service.domain.model.User;
+import ru.zeker.user_service.exception.UserAlreadyExistsException;
+import ru.zeker.user_service.exception.UserNotFoundException;
 import ru.zeker.user_service.repository.UserRepository;
 import ru.zeker.user_service.service.UserService;
 
@@ -16,13 +16,13 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public User findByEmail(String email) {
-        return repository.findByEmail(email).orElseThrow(()->new UsernameNotFoundException("User not found"));
+        return repository.findByEmail(email).orElseThrow((UserNotFoundException::new));
     }
 
     @Override
     public User create(User user){
         if(repository.existsByEmail(user.getEmail())){
-            throw new EntityExistsException("User already exists");
+            throw new UserAlreadyExistsException();
         }
         return repository.save(user);
     }
@@ -30,7 +30,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public User update(User user) {
        if(!repository.existsByEmail(user.getEmail())){
-           throw new UsernameNotFoundException("User not found");
+           throw new UserNotFoundException();
        }
        return repository.save(user);
     }
@@ -38,7 +38,7 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public void deleteById(Long id) {
-        var user = repository.findById(id).orElseThrow(()->new UsernameNotFoundException("User not found"));
+        var user = repository.findById(id).orElseThrow(UserNotFoundException::new);
         repository.delete(user);
 
     }
@@ -46,8 +46,13 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public void deleteByEmail(String email) {
-        var user = repository.findByEmail(email).orElseThrow(()->new UsernameNotFoundException("User not found"));
+        var user = repository.findByEmail(email).orElseThrow(UserNotFoundException::new);
         repository.delete(user);
+    }
+
+    @Override
+    public boolean existsByEmail(String email) {
+        return repository.existsByEmail(email);
     }
 
 
