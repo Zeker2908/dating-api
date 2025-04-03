@@ -25,6 +25,9 @@ public class JwtService {
     @Value("${jwt.refresh.expiration}")
     private long refreshExpirationMs;
 
+    @Value("${jwt.access.expiration}")
+    private long accessExpirationMs;
+
     public String extractUsername(String token){
         return extractClaim(token, Claims::getSubject);
     }
@@ -54,7 +57,7 @@ public class JwtService {
     private String generateToken(Map<String, Object> extraClaims, UserDetails userDetails) {
         return Jwts.builder().setClaims(extraClaims).setSubject(userDetails.getUsername())
                 .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + 3600000)) //время жизни 1 час
+                .setExpiration(new Date(System.currentTimeMillis() + accessExpirationMs))
                 .signWith(getSigningKey(), SignatureAlgorithm.HS256).compact();
     }
 
@@ -80,8 +83,6 @@ public class JwtService {
         final Claims claims = extractAllClaims(token);
         return claimsResolver.apply(claims);
     }
-
-
 
 
     private Key getSigningKey() {

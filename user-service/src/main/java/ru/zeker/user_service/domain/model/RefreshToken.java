@@ -19,8 +19,8 @@ public class RefreshToken {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @OneToOne
-    @JoinColumn(name = "user_id", referencedColumnName = "id")
+    @ManyToOne
+    @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
     @Column(nullable = false, unique = true)
@@ -28,5 +28,9 @@ public class RefreshToken {
 
     @Column(nullable = false)
     private Date expiryDate;
+
+    @Column(nullable = false)
+    private Boolean revoked;
+
 }
 

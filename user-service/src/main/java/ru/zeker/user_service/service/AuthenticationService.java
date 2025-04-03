@@ -50,7 +50,6 @@ public class AuthenticationService {
         );
         User user = userService.findByEmail(request.getEmail());
         String jwtToken = jwtService.generateToken(user);
-        refreshTokenService.deleteByUserId(user.getId());
         String refreshToken = refreshTokenService.createRefreshToken(user);
         return AuthenticationResponse.builder()
                 .token(jwtToken)
@@ -60,8 +59,7 @@ public class AuthenticationService {
 
     public AuthenticationResponse refreshToken(String refreshToken) {
         RefreshToken token = refreshTokenService.verifyRefreshToken(refreshToken);
-        User user = token.getUser();
-        String jwtToken = jwtService.generateToken(user);
+        String jwtToken = jwtService.generateToken(token.getUser());
         String newRefreshToken = refreshTokenService.rotateRefreshToken(token);
         return AuthenticationResponse.builder()
                 .token(jwtToken)
