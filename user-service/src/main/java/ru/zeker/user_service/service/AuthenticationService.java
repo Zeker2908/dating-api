@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import ru.zeker.user_service.domain.dto.AuthenticationResponse;
 import ru.zeker.user_service.domain.dto.LoginRequest;
 import ru.zeker.user_service.domain.dto.RegisterRequest;
+import ru.zeker.user_service.domain.model.RefreshToken;
 import ru.zeker.user_service.domain.model.Role;
 import ru.zeker.user_service.domain.model.User;
 
@@ -18,9 +19,10 @@ public class AuthenticationService {
     private final JwtService jwtService;
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
+    private final RefreshTokenService refreshTokenService;
 
     public AuthenticationResponse register(RegisterRequest request){
-        var user = User.builder()
+        User user = User.builder()
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .firstName(request.getFirstName())
@@ -28,9 +30,11 @@ public class AuthenticationService {
                 .role(Role.USER)
                 .build();
         userService.create(user);
-        var jwtToken = jwtService.generateToken(user);
+        String jwtToken = jwtService.generateToken(user);
+        String refreshToken = refreshTokenService.createRefreshToken(user);
         return AuthenticationResponse.builder()
                 .token(jwtToken)
+                .refreshToken(refreshToken)
                 .build();
     }
 
@@ -41,10 +45,24 @@ public class AuthenticationService {
                         request.getPassword()
                 )
         );
-        var user = userService.loadByEmail(request.getEmail());
-        var jwtToken = jwtService.generateToken(user);
+        User user = userService.findByEmail(request.getEmail());
+        String jwtToken = jwtService.generateToken(user);
+        refreshTokenService.deleteByUser(user);
+        String refreshToken = refreshTokenService.createRefreshToken(user);
         return AuthenticationResponse.builder()
                 .token(jwtToken)
+                .refreshToken(refreshToken)
+                .build();
+    }
+
+    public AuthenticationResponse refreshToken(String refreshToken) {
+        RefreshToken token = refreshTokenService.verifyRefreshToken(refreshToken);
+        User user = token.getUser();
+        String jwtToken = jwtService.generateToken(user);
+        String newRefreshToken = refreshTokenService.rotateRefreshToken(token);
+        return AuthenticationResponse.builder()
+                .token(jwtToken)
+                .refreshToken(newRefreshToken)
                 .build();
     }
 }
