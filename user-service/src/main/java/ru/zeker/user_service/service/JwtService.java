@@ -80,8 +80,7 @@ public class JwtService {
         return claimsResolver.apply(claims);
     }
 
-
-    //TODO: Перенести на RS256
+    
     private Key getSigningKey() {
         return Keys.hmacShaKeyFor(Decoders.BASE64.decode(jwtProperties.getSecret()));
     }

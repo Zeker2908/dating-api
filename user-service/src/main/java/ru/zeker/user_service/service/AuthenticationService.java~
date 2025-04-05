@@ -1,16 +1,19 @@
 package ru.zeker.user_service.service;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ru.zeker.user_service.domain.dto.AuthenticationResponse;
 import ru.zeker.user_service.domain.dto.LoginRequest;
 import ru.zeker.user_service.domain.dto.RegisterRequest;
 import ru.zeker.user_service.domain.model.RefreshToken;
 import ru.zeker.user_service.domain.model.Role;
 import ru.zeker.user_service.domain.model.User;
+import ru.zeker.user_service.exception.UserAlreadyExistsException;
 
 @Service
 @RequiredArgsConstructor

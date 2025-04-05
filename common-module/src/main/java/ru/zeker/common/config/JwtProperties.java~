@@ -12,6 +12,7 @@ import java.util.List;
 @Configuration
 @ConfigurationProperties(prefix = "jwt")
 public class JwtProperties {
+    private List<String> excludedPaths;
     private String secret;
     private String secretHeader;
     private Access access;

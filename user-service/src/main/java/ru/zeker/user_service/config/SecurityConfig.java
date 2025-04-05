@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -20,7 +21,6 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import ru.zeker.common.component.HeaderValidationFilter;
 import ru.zeker.common.config.JwtProperties;
-import ru.zeker.user_service.service.JwtService;
 import ru.zeker.user_service.service.UserService;
 
 @Configuration
@@ -30,23 +30,30 @@ import ru.zeker.user_service.service.UserService;
 public class SecurityConfig {
 
     private final UserService userService;
-    private final JwtService jwtService;
+
     private final JwtProperties jwtProperties;
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    @Order(1)
+    public SecurityFilterChain authEndpointsFilterChain(HttpSecurity http) throws Exception {
+        http
+                .securityMatcher("/api/v1/auth/**")
+                .csrf(AbstractHttpConfigurer::disable)
+                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
+                .userDetailsService(userDetailsService())
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authenticationProvider(authenticationProvider());
+        return http.build();
+    }
+    @Bean
+    @Order(2)
+    public SecurityFilterChain mainFilterChain(HttpSecurity http) throws Exception {
         http
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/v1/auth/**").permitAll()
-                        .anyRequest().authenticated()
-                )
+                        .anyRequest().authenticated())
                 .csrf(AbstractHttpConfigurer::disable)
-                .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                )
-                .authenticationProvider(authenticationProvider())
-                .addFilterBefore(headerValidationFilter(jwtProperties), UsernamePasswordAuthenticationFilter.class);
-
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .addFilterBefore(headerValidationFilter(), UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
 
@@ -75,7 +82,7 @@ public class SecurityConfig {
     }
 
     @Bean
-    public HeaderValidationFilter headerValidationFilter(JwtProperties jwtProperties) {
+    public HeaderValidationFilter headerValidationFilter() {
         return new HeaderValidationFilter(jwtProperties);
     }
 

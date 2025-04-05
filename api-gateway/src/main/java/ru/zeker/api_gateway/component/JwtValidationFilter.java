@@ -18,13 +18,14 @@ import org.springframework.core.Ordered;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
-import org.springframework.util.AntPathMatcher;
-import org.springframework.util.PathMatcher;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
+import ru.zeker.common.component.HmacUtil;
 import ru.zeker.common.config.JwtProperties;
 
+import java.security.InvalidKeyException;
 import java.security.Key;
+import java.security.NoSuchAlgorithmException;
 
 @Component
 @RequiredArgsConstructor
@@ -38,10 +39,6 @@ public class JwtValidationFilter implements GlobalFilter, Ordered {
 
     private Key signingKey;
 
-    private final PathMatcher pathMatcher = new AntPathMatcher();
-
-
-
     @PostConstruct
     void init() {
         this.signingKey = Keys.hmacShaKeyFor(Decoders.BASE64.decode(jwtProperties.getSecret()));
@@ -53,20 +50,10 @@ public class JwtValidationFilter implements GlobalFilter, Ordered {
         final String path = exchange.getRequest().getPath().toString();
         final String method = exchange.getRequest().getMethod().name();
 
-        if (jwtProperties.getExcludedPaths().stream().anyMatch(pattern -> pathMatcher.match(pattern, path))) {
-            log.debug("Skipping JWT validation for {} {}", method, path);
-            return chain.filter(exchange);
-        }
-
         final String header = exchange.getRequest().getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
-        if (StringUtils.isBlank(header)) {
-            log.warn("Missing Authorization header for {} {}", method, path);
-            return unauthorized(exchange, "Missing token");
-        }
-
-        if (!header.startsWith(BEARER_PREFIX)) {
-            log.warn("Invalid Authorization header format for {} {}", method, path);
-            return unauthorized(exchange, "Invalid token format");
+        if (StringUtils.isBlank(header) || !header.startsWith(BEARER_PREFIX)) {
+            log.debug("Missing Authorization header for {} {}", method, path);
+            return chain.filter(exchange);
         }
 
         final String jwt = header.substring(BEARER_PREFIX.length());
@@ -88,10 +75,21 @@ public class JwtValidationFilter implements GlobalFilter, Ordered {
             log.info("Successful authentication for user '{}' (role: {}) via {} {}",
                     claims.getSubject(), claims.get("role"), method, path);
 
+            String username = claims.getSubject();
+            String role = claims.get("role", String.class);
             exchange = exchange.mutate()
-                    .request(request -> request
-                            .header("X-User-Name", claims.getSubject())
-                            .header("X-User-Role", claims.get("role", String.class))
+                    .request(request -> {
+                                try {
+                                    request
+                                            .header("X-User-Name", username)
+                                            .header("X-User-Role", role)
+                                            .header("X-User-Signature",
+                                                    HmacUtil.sign(username + role, jwtProperties.getSecretHeader(),"HmacSHA256" ));
+                                } catch (NoSuchAlgorithmException | InvalidKeyException e) {
+                                    log.error("Failed to add security headers", e);
+                                    throw new RuntimeException(e);
+                                }
+                            }
                     )
                     .build();
 
