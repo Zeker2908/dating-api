@@ -39,7 +39,7 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
 
         if (refreshToken.getExpiryDate().before(new Date()) || refreshToken.getRevoked()) {
             refreshTokenRepository.delete(refreshToken);
-            throw new RefreshTokenExpiredException();
+            throw new RefreshTokenExpiredException("Refresh token expired or revoked");
         }
         return refreshToken;
     }

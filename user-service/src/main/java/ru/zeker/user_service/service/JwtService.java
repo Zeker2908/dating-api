@@ -5,9 +5,11 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
+import ru.zeker.common.config.JwtProperties;
 import ru.zeker.user_service.domain.model.User;
 
 import java.security.Key;
@@ -17,16 +19,10 @@ import java.util.Map;
 import java.util.function.Function;
 
 @Service
+@RequiredArgsConstructor
 public class JwtService {
 
-    @Value("${jwt.secret}")
-    private String jwtSigningKey;
-
-    @Value("${jwt.refresh.expiration}")
-    private long refreshExpirationMs;
-
-    @Value("${jwt.access.expiration}")
-    private long accessExpirationMs;
+    private final JwtProperties jwtProperties;
 
     public String extractUsername(String token){
         return extractClaim(token, Claims::getSubject);
@@ -49,7 +45,7 @@ public class JwtService {
         return Jwts.builder()
                 .setSubject(userDetails.getUsername())
                 .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + refreshExpirationMs))
+                .setExpiration(new Date(System.currentTimeMillis() + jwtProperties.getRefresh().getExpiration()))
                 .signWith(getSigningKey(),SignatureAlgorithm.HS256)
                 .compact();
     }
@@ -57,7 +53,7 @@ public class JwtService {
     private String generateToken(Map<String, Object> extraClaims, UserDetails userDetails) {
         return Jwts.builder().setClaims(extraClaims).setSubject(userDetails.getUsername())
                 .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + accessExpirationMs))
+                .setExpiration(new Date(System.currentTimeMillis() + jwtProperties.getAccess().getExpiration()))
                 .signWith(getSigningKey(), SignatureAlgorithm.HS256).compact();
     }
 
@@ -87,6 +83,6 @@ public class JwtService {
 
     //TODO: Перенести на RS256
     private Key getSigningKey() {
-        return Keys.hmacShaKeyFor(Decoders.BASE64.decode(jwtSigningKey));
+        return Keys.hmacShaKeyFor(Decoders.BASE64.decode(jwtProperties.getSecret()));
     }
 }

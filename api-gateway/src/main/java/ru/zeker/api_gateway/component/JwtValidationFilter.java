@@ -7,10 +7,11 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
+import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
@@ -21,31 +22,29 @@ import org.springframework.util.AntPathMatcher;
 import org.springframework.util.PathMatcher;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
+import ru.zeker.common.config.JwtProperties;
 
 import java.security.Key;
-import java.util.List;
 
 @Component
+@RequiredArgsConstructor
+@EnableConfigurationProperties(JwtProperties.class)
 public class JwtValidationFilter implements GlobalFilter, Ordered {
     public static final String BEARER_PREFIX = "Bearer ";
 
     private static final Logger log = LoggerFactory.getLogger(JwtValidationFilter.class);
 
-    //TODO: Придумать как перенести это в конифиги
-    private static final List<String> EXCLUDED_PATHS = List.of(
-            "/api/v1/auth/**"
-    );
-
-    //TODO: Переделать с HMAC на RS256
-    @Value("${jwt.secret}")
-    private String jwtSigningKey;
+    private final JwtProperties jwtProperties;
 
     private Key signingKey;
+
     private final PathMatcher pathMatcher = new AntPathMatcher();
+
+
 
     @PostConstruct
     void init() {
-        this.signingKey = Keys.hmacShaKeyFor(Decoders.BASE64.decode(jwtSigningKey));
+        this.signingKey = Keys.hmacShaKeyFor(Decoders.BASE64.decode(jwtProperties.getSecret()));
     }
 
 
@@ -54,7 +53,7 @@ public class JwtValidationFilter implements GlobalFilter, Ordered {
         final String path = exchange.getRequest().getPath().toString();
         final String method = exchange.getRequest().getMethod().name();
 
-        if (EXCLUDED_PATHS.stream().anyMatch(pattern -> pathMatcher.match(pattern, path))) {
+        if (jwtProperties.getExcludedPaths().stream().anyMatch(pattern -> pathMatcher.match(pattern, path))) {
             log.debug("Skipping JWT validation for {} {}", method, path);
             return chain.filter(exchange);
         }

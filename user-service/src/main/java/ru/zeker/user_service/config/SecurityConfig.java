@@ -2,6 +2,7 @@ package ru.zeker.user_service.config;
 
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -18,16 +19,20 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import ru.zeker.common.component.HeaderValidationFilter;
+import ru.zeker.common.config.JwtProperties;
 import ru.zeker.user_service.service.JwtService;
 import ru.zeker.user_service.service.UserService;
 
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
+@EnableConfigurationProperties(JwtProperties.class)
 public class SecurityConfig {
 
     private final UserService userService;
     private final JwtService jwtService;
+    private final JwtProperties jwtProperties;
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
@@ -40,7 +45,7 @@ public class SecurityConfig {
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
                 .authenticationProvider(authenticationProvider())
-                .addFilterBefore(headerValidationFilter(), UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(headerValidationFilter(jwtProperties), UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
@@ -70,8 +75,8 @@ public class SecurityConfig {
     }
 
     @Bean
-    public HeaderValidationFilter headerValidationFilter() {
-        return new HeaderValidationFilter();
+    public HeaderValidationFilter headerValidationFilter(JwtProperties jwtProperties) {
+        return new HeaderValidationFilter(jwtProperties);
     }
 
 }

@@ -14,6 +14,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.AntPathMatcher;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
+import ru.zeker.common.config.JwtProperties;
 
 import java.io.IOException;
 import java.util.List;
@@ -23,10 +24,7 @@ import java.util.List;
 public class HeaderValidationFilter extends OncePerRequestFilter {
     private static final Logger log = LoggerFactory.getLogger(HeaderValidationFilter.class);
 
-    private static final List<String> EXCLUDED_PATHS = List.of(
-            "/api/v1/auth/**",
-            "/actuator/**"
-    );
+    private final JwtProperties jwtProperties;
 
     private final AntPathMatcher pathMatcher = new AntPathMatcher();
 
@@ -38,13 +36,11 @@ public class HeaderValidationFilter extends OncePerRequestFilter {
 
         String requestUri = request.getRequestURI();
 
-        // Пропускаем исключенные пути
         if (isExcludedPath(requestUri)) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        // Валидация заголовков
         String username = request.getHeader("X-User-Name");
         String role = request.getHeader("X-User-Role");
 
@@ -54,14 +50,13 @@ public class HeaderValidationFilter extends OncePerRequestFilter {
             return;
         }
 
-        // Установка аутентификации
         setAuthentication(username, role);
 
         filterChain.doFilter(request, response);
     }
 
     private boolean isExcludedPath(String requestUri) {
-        return EXCLUDED_PATHS.stream()
+        return jwtProperties.getExcludedPaths().stream()
                 .anyMatch(pattern -> pathMatcher.match(pattern, requestUri));
     }
 
