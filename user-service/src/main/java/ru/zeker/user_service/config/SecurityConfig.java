@@ -16,6 +16,8 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import ru.zeker.common.component.HeaderValidationFilter;
 import ru.zeker.user_service.service.JwtService;
 import ru.zeker.user_service.service.UserService;
 
@@ -26,19 +28,15 @@ public class SecurityConfig {
 
     private final UserService userService;
     private final JwtService jwtService;
-
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/v1/auth/**").permitAll()
-                        .anyRequest().authenticated()
-                )
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
-                .authenticationProvider(authenticationProvider());
+                .authenticationProvider(authenticationProvider())
+                .addFilterBefore(headerValidationFilter(), UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
@@ -65,6 +63,11 @@ public class SecurityConfig {
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
+    }
+
+    @Bean
+    public HeaderValidationFilter headerValidationFilter() {
+        return new HeaderValidationFilter();
     }
 
 }

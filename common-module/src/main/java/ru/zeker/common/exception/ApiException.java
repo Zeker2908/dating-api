@@ -1,5 +1,4 @@
-package ru.zeker.user_service.exception;
-
+package ru.zeker.common.exception;
 
 import lombok.Getter;
 import org.springframework.http.HttpStatus;

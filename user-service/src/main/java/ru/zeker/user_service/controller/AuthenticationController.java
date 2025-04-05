@@ -32,6 +32,7 @@ public class AuthenticationController {
         return ResponseEntity.ok(authenticationService.refreshToken(refreshToken));
     }
 
+    //TODO: Разобраться в куках и понять, надо серверу удалять или клиенту
     @PostMapping("/logout")
     public ResponseEntity<String> logout(@CookieValue(name = "refresh_token") String refreshToken){
         refreshTokenService.revokeRefreshToken(refreshToken);
