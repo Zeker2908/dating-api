@@ -51,7 +51,7 @@ public class HeaderValidationFilter extends OncePerRequestFilter {
     private boolean isValidHeaders(String username, String role, String signature) throws NoSuchAlgorithmException, InvalidKeyException {
         return StringUtils.hasText(username) && StringUtils.hasText(role) &&
                 (StringUtils.hasText(signature) &&
-                        HmacUtil.verify(username+role, signature, jwtProperties.getSecretHeader(),"HmacSHA256"));
+                        HmacUtil.verify(username + "|" + role, signature, jwtProperties.getSecretHeader(),"HmacSHA256"));
     }
 
     private void setAuthentication(String username, String role) {

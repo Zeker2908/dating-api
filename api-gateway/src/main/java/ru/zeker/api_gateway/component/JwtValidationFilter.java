@@ -84,7 +84,7 @@ public class JwtValidationFilter implements GlobalFilter, Ordered {
                                             .header("X-User-Name", username)
                                             .header("X-User-Role", role)
                                             .header("X-User-Signature",
-                                                    HmacUtil.sign(username + role, jwtProperties.getSecretHeader(),"HmacSHA256" ));
+                                                    HmacUtil.sign(username + "|" + role, jwtProperties.getSecretHeader(),"HmacSHA256" ));
                                 } catch (NoSuchAlgorithmException | InvalidKeyException e) {
                                     log.error("Failed to add security headers", e);
                                     throw new RuntimeException(e);
