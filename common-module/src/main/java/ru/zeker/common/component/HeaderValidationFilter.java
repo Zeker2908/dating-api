@@ -39,6 +39,7 @@ public class HeaderValidationFilter extends OncePerRequestFilter {
                 return;
             }
         } catch (NoSuchAlgorithmException | InvalidKeyException e) {
+            response.sendError(HttpServletResponse.SC_FORBIDDEN);
             throw new RuntimeException(e);
         }
 
