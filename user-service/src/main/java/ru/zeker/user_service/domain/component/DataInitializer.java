@@ -7,7 +7,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
-import org.springframework.util.StringUtils;
 import ru.zeker.user_service.domain.model.Role;
 import ru.zeker.user_service.domain.model.User;
 import ru.zeker.user_service.service.UserService;
@@ -29,7 +28,6 @@ public class DataInitializer implements CommandLineRunner {
     @Value("${admin.username}")
     private String adminName;
 
-
     @Override
     public void run(String... args){
         if (!userService.existsByEmail(adminName)) {
@@ -47,11 +45,6 @@ public class DataInitializer implements CommandLineRunner {
         } else {
             LOGGER.info("Admin user already exists.");
         }
-    }
-
-
-    private boolean checkData(String username, String password) {
-        return StringUtils.hasText(username) && StringUtils.hasText(password);
     }
 
     private String generatePassword() {
