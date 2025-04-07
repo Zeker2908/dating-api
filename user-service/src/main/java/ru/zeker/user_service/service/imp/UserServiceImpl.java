@@ -20,6 +20,11 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    public User findById(Long id) {
+        return repository.findById(id).orElseThrow((UserNotFoundException::new));
+    }
+
+    @Override
     public User create(User user){
         if(repository.existsByEmail(user.getEmail())){
             throw new UserAlreadyExistsException();

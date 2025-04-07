@@ -1,36 +1,35 @@
 package ru.zeker.user_service.domain.model;
 
-import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.redis.core.RedisHash;
+import org.springframework.data.redis.core.TimeToLive;
+import org.springframework.data.redis.core.index.Indexed;
 
+import java.io.Serializable;
 import java.util.Date;
 
-@Entity
-@Table(name = "refresh_tokens")
+@RedisHash("RefreshToken")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class RefreshToken {
+public class RefreshToken implements Serializable {
+
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
-    @ManyToOne
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
-
-    @Column(nullable = false, unique = true)
     private String token;
 
-    @Column(nullable = false)
-    private Date expiryDate;
+    @Indexed
+    private Long userId;
 
-    @Column(nullable = false)
     private Boolean revoked;
 
+    private Date expiryDate;
+
+    @TimeToLive
+    private Long ttl;
 }
 

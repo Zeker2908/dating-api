@@ -8,6 +8,7 @@ import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,13 +28,12 @@ import java.security.InvalidKeyException;
 import java.security.Key;
 import java.security.NoSuchAlgorithmException;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 @EnableConfigurationProperties(JwtProperties.class)
 public class JwtValidationFilter implements GlobalFilter, Ordered {
     public static final String BEARER_PREFIX = "Bearer ";
-
-    private static final Logger log = LoggerFactory.getLogger(JwtValidationFilter.class);
 
     private final JwtProperties jwtProperties;
 

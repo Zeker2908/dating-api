@@ -57,7 +57,7 @@ public class AuthenticationService {
 
     public Tokens refreshToken(String refreshToken) {
         RefreshToken token = refreshTokenService.verifyRefreshToken(refreshToken);
-        String jwtToken = jwtService.generateToken(token.getUser());
+        String jwtToken = jwtService.generateToken(userService.findById(token.getUserId()));
         String newRefreshToken = refreshTokenService.rotateRefreshToken(token);
         return Tokens.builder()
                 .token(jwtToken)
