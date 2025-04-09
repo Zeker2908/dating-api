@@ -33,6 +33,7 @@ public class AuthenticationController {
         return ResponseEntity.ok(new AuthenticationResponse(tokens.getToken()));
     }
 
+    //TODO: Доделать и перенести на эндпоинт регистрации
     @PostMapping("/register-with-kafka")
     public ResponseEntity<String> registerWithKafka(@RequestBody @Valid RegisterRequest request) {
         authenticationService.registerWithKafka(request);
