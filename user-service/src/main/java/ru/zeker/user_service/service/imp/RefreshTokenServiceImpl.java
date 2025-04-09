@@ -1,21 +1,17 @@
 package ru.zeker.user_service.service.imp;
 
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import ru.zeker.user_service.domain.model.RefreshToken;
 import ru.zeker.user_service.domain.model.User;
 import ru.zeker.user_service.exception.RefreshTokenExpiredException;
 import ru.zeker.user_service.exception.RefreshTokenNotFoundException;
-import ru.zeker.user_service.exception.UserNotFoundException;
 import ru.zeker.user_service.repository.RefreshTokenRepository;
 import ru.zeker.user_service.service.JwtService;
 import ru.zeker.user_service.service.RefreshTokenService;
 import ru.zeker.user_service.service.UserService;
 
 import java.util.Date;
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 @Service
@@ -47,7 +43,7 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
     public RefreshToken verifyRefreshToken(String token) {
         return refreshTokenRepository.findByToken(token)
                 .map(t -> {
-                    if (t.getExpiryDate().before(new Date(System.currentTimeMillis())) || t.getRevoked()) {
+                    if (t.getRevoked() || t.getExpiryDate().before(new Date(System.currentTimeMillis()))) {
                         refreshTokenRepository.delete(t);
                         throw new RefreshTokenExpiredException("Token expired or revoked");
                     }

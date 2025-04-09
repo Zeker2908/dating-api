@@ -29,8 +29,8 @@ import java.security.Key;
 import java.security.NoSuchAlgorithmException;
 
 @Slf4j
-@Component
 @RequiredArgsConstructor
+@Component
 @EnableConfigurationProperties(JwtProperties.class)
 public class JwtValidationFilter implements GlobalFilter, Ordered {
     public static final String BEARER_PREFIX = "Bearer ";
@@ -66,10 +66,15 @@ public class JwtValidationFilter implements GlobalFilter, Ordered {
                     .parseClaimsJws(jwt)
                     .getBody();
 
-            if (claims.getSubject() == null || claims.get("role") == null) {
+            if (claims.getSubject() == null || claims.get("role") == null || claims.get("enabled") == null) {
                 log.error("Invalid JWT claims for {} {}. Subject: {}, Role: {}",
                         method, path, claims.getSubject(), claims.get("role"));
                 return unauthorized(exchange, "Invalid claims");
+            }
+
+            if (!Boolean.parseBoolean(claims.get("enabled").toString())) {
+                log.warn("Invalid account");
+                return unauthorized(exchange, "Invalid account");
             }
 
             log.info("Successful authentication for user '{}' (role: {}) via {} {}",

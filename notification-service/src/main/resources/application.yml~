@@ -1,0 +1,21 @@
+spring:
+  application:
+    name: notification-service
+  kafka:
+    bootstrap-servers: localhost:9092
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: kizaker29@gmail.com
+    password: password
+    properties:
+      smtp:
+        auth: true
+        starttls.enable: true
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka
+
+server:
+  port: 8082

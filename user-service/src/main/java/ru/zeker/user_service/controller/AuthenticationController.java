@@ -23,7 +23,7 @@ public class AuthenticationController {
     private final AuthenticationService authenticationService;
     private final RefreshTokenService refreshTokenService;
 
-    //TODO: Добавить подтвержение почты
+    //TODO: Добавить подтверждение почты
     @PostMapping("/register")
     public ResponseEntity<AuthenticationResponse> register(@RequestBody @Valid RegisterRequest request,
                                                            HttpServletResponse response){
@@ -32,6 +32,11 @@ public class AuthenticationController {
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
         return ResponseEntity.ok(new AuthenticationResponse(tokens.getToken()));
     }
+
+    @PostMapping("/register-with-kafka")
+    public ResponseEntity<String> registerWithKafka(@RequestBody @Valid RegisterRequest request) {
+        authenticationService.registerWithKafka(request);
+        return ResponseEntity.ok("Email has been sent"); }
 
     @PostMapping("/login")
     public ResponseEntity<AuthenticationResponse> login(@RequestBody @Valid LoginRequest request,

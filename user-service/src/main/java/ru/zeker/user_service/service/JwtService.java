@@ -37,6 +37,7 @@ public class JwtService {
         if(userDetails instanceof User customUserDetails){
             claims.put("id", customUserDetails.getId());
             claims.put("role", customUserDetails.getRole());
+            claims.put("enabled", customUserDetails.isEnabled());
         }
         return generateToken(claims, userDetails);
     }
