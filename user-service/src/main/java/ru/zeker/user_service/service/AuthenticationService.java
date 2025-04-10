@@ -5,8 +5,8 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ru.zeker.common.dto.UserRegisteredEvent;
-import ru.zeker.user_service.domain.dto.AuthenticationResponse;
 import ru.zeker.user_service.domain.dto.LoginRequest;
 import ru.zeker.user_service.domain.dto.RegisterRequest;
 import ru.zeker.user_service.domain.dto.Tokens;
@@ -57,7 +57,7 @@ public class AuthenticationService {
                 .build();
         userService.create(user);
         VerificationToken verificationToken = VerificationToken.builder()
-                .token(UUID.randomUUID().toString())
+                .token(UUID.randomUUID() + user.getId().toString())
                 .user(user)
                 .expiryDate(java.time.LocalDateTime.now().plusMinutes(15))
                 .build();
@@ -65,6 +65,7 @@ public class AuthenticationService {
         UserRegisteredEvent userRegisteredEvent = UserRegisteredEvent.builder()
                 .email(user.getEmail())
                 .token(verificationToken.getToken())
+                .firstName(user.getFirstName())
                 .build();
         kafkaProducer.sendEmailVerification(userRegisteredEvent);
     }
@@ -94,5 +95,12 @@ public class AuthenticationService {
                 .token(jwtToken)
                 .refreshToken(newRefreshToken)
                 .build();
+    }
+
+    @Transactional
+    public void confirmEmail(String token) {
+        User user = verificationTokenService.verify(token).getUser();
+        user.setEnabled(true);
+        userService.update(user);
     }
 }
