@@ -26,7 +26,7 @@ public class KafkaProducerConfig {
         props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
         props.put(JsonSerializer.ADD_TYPE_INFO_HEADERS, true);
         props.put(ProducerConfig.ACKS_CONFIG, "all");
-        props.put(ProducerConfig.LINGER_MS_CONFIG, 10);
+        props.put(ProducerConfig.LINGER_MS_CONFIG, 20);
         props.put(ProducerConfig.BATCH_SIZE_CONFIG, 32_768);
         return props;
     }

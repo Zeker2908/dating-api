@@ -1,6 +1,5 @@
 package ru.zeker.notification_service.service;
 
-import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -13,6 +12,7 @@ import org.thymeleaf.context.Context;
 import org.thymeleaf.spring6.SpringTemplateEngine;
 import ru.zeker.common.dto.UserRegisteredEvent;
 import ru.zeker.notification_service.dto.EmailContext;
+import ru.zeker.notification_service.exception.EmailSendingException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -46,8 +46,9 @@ public class EmailService {
         mimeMessageHelper.setText(html, true);
         log.info("Sending email to {}", emailContext.getTo());
         javaMailSender.send(message);
-        } catch (MessagingException e) {
+        } catch (Exception e) {
             log.error("Failed to send email: {}", emailContext.getTo(), e);
+            throw new EmailSendingException("Email sending failed");
         }
 
     }

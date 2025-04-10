@@ -3,11 +3,17 @@ spring:
     name: discovery-service
 server:
   port: 8761
+  http2:
+    enabled: true
 eureka:
+  server:
+    response-cache-update-interval-ms: 2000
+    eviction-interval-timer-in-ms: 5000
   instance:
     hostname: localhost
   client:
     register-with-eureka: false
     fetch-registry: false
+    registry-fetch-interval-seconds: 2
     service-url:
       defaultZone: http://${eureka.instance.hostname}:${server.port}/eureka

@@ -10,6 +10,8 @@ spring:
     properties:
       mail:
         smtp:
+          connectionpoolsize: 50
+          timeout: 5000
           auth: true
           starttls:
             enable: true
