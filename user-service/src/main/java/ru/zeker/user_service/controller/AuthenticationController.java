@@ -23,10 +23,9 @@ public class AuthenticationController {
     private final AuthenticationService authenticationService;
     private final RefreshTokenService refreshTokenService;
 
-    //TODO: Доделать и перенести на эндпоинт регистрации
     @PostMapping("/register")
     public ResponseEntity<String> registerWithKafka(@RequestBody @Valid RegisterRequest request) {
-        authenticationService.registerWithKafka(request);
+        authenticationService.register(request);
         return ResponseEntity.ok("Email has been sent"); }
 
     @PostMapping("/login")

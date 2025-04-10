@@ -28,25 +28,7 @@ public class AuthenticationService {
     private final VerificationTokenService verificationTokenService;
     private final KafkaProducer kafkaProducer;
 
-    public Tokens register(RegisterRequest request){
-        User user = User.builder()
-                .email(request.getEmail())
-                .password(passwordEncoder.encode(request.getPassword()))
-                .firstName(request.getFirstName())
-                .lastName(request.getLastName())
-                .role(Role.USER)
-                .enabled(false)
-                .build();
-        userService.create(user);
-        String jwtToken = jwtService.generateToken(user);
-        String refreshToken = refreshTokenService.createRefreshToken(user);
-        return Tokens.builder()
-                .token(jwtToken)
-                .refreshToken(refreshToken)
-                .build();
-    }
-
-    public void registerWithKafka(RegisterRequest request) {
+    public void register(RegisterRequest request) {
         User user = User.builder()
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
@@ -99,8 +81,10 @@ public class AuthenticationService {
 
     @Transactional
     public void confirmEmail(String token) {
-        User user = verificationTokenService.verify(token).getUser();
+        VerificationToken verificationToken= verificationTokenService.verify(token);
+        User user = verificationToken.getUser();
         user.setEnabled(true);
         userService.update(user);
+        verificationTokenService.delete(verificationToken);
     }
 }

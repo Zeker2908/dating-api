@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.thymeleaf.context.Context;
 import org.thymeleaf.spring6.SpringTemplateEngine;
@@ -29,8 +30,9 @@ public class EmailService {
     @Value("${spring.application.url}")
     private String url;
 
-    //TODO: сделать асинхронно и обработать исключения
-    public void sendEmail(EmailContext emailContext) throws MessagingException {
+    @Async("asyncExecutor")
+    public void sendEmail(EmailContext emailContext) {
+        try {
         MimeMessage message = javaMailSender.createMimeMessage();
         MimeMessageHelper mimeMessageHelper = new MimeMessageHelper(message,
                 MimeMessageHelper.MULTIPART_MODE_MIXED_RELATED, "UTF-8");
@@ -44,6 +46,9 @@ public class EmailService {
         mimeMessageHelper.setText(html, true);
         log.info("Sending email to {}", emailContext.getTo());
         javaMailSender.send(message);
+        } catch (MessagingException e) {
+            log.error("Failed to send email: {}", emailContext.getTo(), e);
+        }
 
     }
 

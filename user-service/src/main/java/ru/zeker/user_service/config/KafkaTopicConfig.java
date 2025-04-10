@@ -12,8 +12,9 @@ public class KafkaTopicConfig {
     public NewTopic userRegisterTopic() {
         return TopicBuilder
                 .name("user-registered-events")
-                .partitions(1)
+                .partitions(32)
                 .replicas(1)
+                .config("retention.ms", "604800000")
                 .build();
     }
 }

@@ -24,7 +24,6 @@ public class VerificationTokenServiceImpl implements VerificationTokenService {
     }
 
     @Override
-    @Transactional
     public VerificationToken verify(String token) {
         return verificationTokenRepository.findByToken(token).map(vt -> {
             if(vt.getExpiryDate().isBefore(java.time.LocalDateTime.now())) {
@@ -33,6 +32,12 @@ public class VerificationTokenServiceImpl implements VerificationTokenService {
             }
             return vt;
         }).orElseThrow(VerificationTokenNotFoundException::new);
+    }
+
+    @Override
+    @Transactional
+    public void delete(VerificationToken verificationToken) {
+        verificationTokenRepository.delete(verificationToken);
     }
 }
 
