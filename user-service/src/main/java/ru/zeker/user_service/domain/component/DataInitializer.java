@@ -37,7 +37,7 @@ public class DataInitializer implements CommandLineRunner {
                     .email(adminName)
                     .password(passwordEncoder.encode(password))
                     .role(Role.ADMIN)
-                    .firstName(adminName)
+                    .firstName("Admin")
                     .enabled(true)
                     .build();
             userService.create(admin);

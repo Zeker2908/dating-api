@@ -1,6 +1,5 @@
 package ru.zeker.user_service.controller;
 
-import io.jsonwebtoken.security.SignatureException;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -40,10 +39,7 @@ public class GlobalExceptionHandler {
         return buildResponse(ex.getStatus(), ex.getMessage());
     }
 
-    @ExceptionHandler(SignatureException.class)
-    public ResponseEntity<Map<String, String>> handleSignatureException(SignatureException ex) {
-        return buildResponse(HttpStatus.UNAUTHORIZED, "Invalid token");
-    }
+    @ExceptionHandler
 
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<Map<String, String>> handleRuntimeException(RuntimeException ex) {

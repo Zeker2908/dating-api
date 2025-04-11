@@ -4,8 +4,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import ru.zeker.user_service.domain.model.RefreshToken;
 import ru.zeker.user_service.domain.model.User;
-import ru.zeker.user_service.exception.RefreshTokenExpiredException;
-import ru.zeker.user_service.exception.RefreshTokenNotFoundException;
+import ru.zeker.user_service.exception.TokenExpiredException;
+import ru.zeker.user_service.exception.TokenNotFoundException;
 import ru.zeker.user_service.repository.RefreshTokenRepository;
 import ru.zeker.user_service.service.JwtService;
 import ru.zeker.user_service.service.RefreshTokenService;
@@ -43,11 +43,11 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
                 .map(t -> {
                     if (t.getRevoked() || t.getExpiryDate().before(new Date(System.currentTimeMillis()))) {
                         refreshTokenRepository.delete(t);
-                        throw new RefreshTokenExpiredException("Token expired or revoked");
+                        throw new TokenExpiredException("Token expired or revoked");
                     }
                     return t;
                 })
-                .orElseThrow(RefreshTokenNotFoundException::new);
+                .orElseThrow(TokenNotFoundException::new);
     }
 
     @Override

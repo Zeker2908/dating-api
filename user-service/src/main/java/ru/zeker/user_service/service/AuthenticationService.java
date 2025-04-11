@@ -5,7 +5,6 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import ru.zeker.common.dto.UserRegisteredEvent;
 import ru.zeker.user_service.domain.dto.LoginRequest;
 import ru.zeker.user_service.domain.dto.RegisterRequest;
@@ -13,9 +12,10 @@ import ru.zeker.user_service.domain.dto.Tokens;
 import ru.zeker.user_service.domain.model.RefreshToken;
 import ru.zeker.user_service.domain.model.Role;
 import ru.zeker.user_service.domain.model.User;
-import ru.zeker.user_service.domain.model.VerificationToken;
+import ru.zeker.user_service.exception.TokenExpiredException;
+import ru.zeker.user_service.exception.UserAlreadyEnableException;
 
-import java.util.UUID;
+import java.util.Date;
 
 @Service
 @RequiredArgsConstructor
@@ -25,7 +25,6 @@ public class AuthenticationService {
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final RefreshTokenService refreshTokenService;
-    private final VerificationTokenService verificationTokenService;
     private final KafkaProducer kafkaProducer;
 
     public void register(RegisterRequest request) {
@@ -38,15 +37,10 @@ public class AuthenticationService {
                 .enabled(false)
                 .build();
         userService.create(user);
-        VerificationToken verificationToken = VerificationToken.builder()
-                .token(UUID.randomUUID() + user.getId().toString())
-                .user(user)
-                .expiryDate(java.time.LocalDateTime.now().plusMinutes(15))
-                .build();
-        verificationTokenService.create(verificationToken);
+        String token = jwtService.generateToken(user);
         UserRegisteredEvent userRegisteredEvent = UserRegisteredEvent.builder()
                 .email(user.getEmail())
-                .token(verificationToken.getToken())
+                .token(token)
                 .firstName(user.getFirstName())
                 .build();
         kafkaProducer.sendEmailVerification(userRegisteredEvent);
@@ -79,12 +73,11 @@ public class AuthenticationService {
                 .build();
     }
 
-    @Transactional
     public void confirmEmail(String token) {
-        VerificationToken verificationToken= verificationTokenService.verify(token);
-        User user = verificationToken.getUser();
+        if(jwtService.extractExpiration(token).before(new Date())) throw new TokenExpiredException();
+        User user = userService.findById(jwtService.extractUserId(token));
+        if (user.isEnabled()) throw new UserAlreadyEnableException();
         user.setEnabled(true);
         userService.update(user);
-        verificationTokenService.delete(verificationToken);
     }
 }
