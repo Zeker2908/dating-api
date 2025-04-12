@@ -8,12 +8,14 @@ import ru.zeker.userservice.domain.model.RefreshToken;
 import ru.zeker.userservice.domain.model.User;
 import ru.zeker.userservice.exception.TokenExpiredException;
 import ru.zeker.userservice.exception.TokenNotFoundException;
+import ru.zeker.userservice.exception.UserNotFoundException;
 import ru.zeker.userservice.repository.RefreshTokenRepository;
 import ru.zeker.userservice.service.JwtService;
 import ru.zeker.userservice.service.RefreshTokenService;
 import ru.zeker.userservice.service.UserService;
 
 import java.util.Date;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -46,7 +48,6 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
         RefreshToken refreshToken = RefreshToken.builder()
                 .token(token)
                 .userId(user.getId())
-                .revoked(false)
                 .expiryDate(expiryDate)
                 .ttl(ttlSeconds)
                 .build();
@@ -69,21 +70,15 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
     @Transactional(readOnly = true)
     public RefreshToken verifyRefreshToken(String token) {
         log.debug("Проверка refresh-токена");
-        
+
         return refreshTokenRepository.findByToken(token)
                 .map(t -> {
-                    if (t.getRevoked()) {
-                        log.warn("Попытка использовать отозванный токен для пользователя с ID: {}", t.getUserId());
-                        refreshTokenRepository.delete(t);
-                        throw new TokenExpiredException("Токен был отозван");
-                    }
-                    
                     if (t.getExpiryDate().before(new Date())) {
                         log.warn("Попытка использовать истекший токен для пользователя с ID: {}", t.getUserId());
                         refreshTokenRepository.delete(t);
                         throw new TokenExpiredException("Срок действия токена истек");
                     }
-                    
+
                     log.debug("Refresh-токен действителен для пользователя с ID: {}", t.getUserId());
                     return t;
                 })
@@ -127,31 +122,27 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
         refreshTokenRepository.findByToken(token)
                 .ifPresent(t -> {
                     log.info("Отзыв refresh-токена для пользователя с ID: {}", t.getUserId());
-                    t.setRevoked(true);
-                    refreshTokenRepository.save(t);
+                    refreshTokenRepository.delete(t);
                 });
     }
 
     /**
      * Отзывает все refresh-токены пользователя
      *
-     * @param userId ID пользователя
+     * @param token токен пользователя
      */
     @Override
     @Transactional
-    public void revokeAllUserTokens(Long userId) {
+    public void revokeAllUserTokens(String token) {
+        UUID userId = jwtService.extractUserId(token);
         log.info("Отзыв всех refresh-токенов для пользователя с ID: {}", userId);
         
-        var tokens = refreshTokenRepository.findAllByUserId(userId);
-        if (tokens.isEmpty()) {
-            log.debug("Активные токены не найдены для пользователя с ID: {}", userId);
-            return;
-        }
-        
-        tokens.forEach(t -> {
-            t.setRevoked(true);
-            refreshTokenRepository.save(t);
+        var tokens = refreshTokenRepository.findAllByUserId(userId).orElseThrow(() -> {
+            log.warn("Пользователь с ID: {} не имеет refresh-токенов", userId);
+            return new UserNotFoundException("Пользователь с ID: " + userId + " не имеет refresh-токенов");
         });
+
+        refreshTokenRepository.deleteAll(tokens);
         
         log.info("Отозвано {} токенов для пользователя с ID: {}", tokens.size(), userId);
     }

@@ -9,6 +9,8 @@ import ru.zeker.userservice.exception.UserNotFoundException;
 import ru.zeker.userservice.repository.UserRepository;
 import ru.zeker.userservice.service.UserService;
 
+import java.util.UUID;
+
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
@@ -20,7 +22,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public User findById(Long id) {
+    public User findById(UUID id) {
         return repository.findById(id).orElseThrow((UserNotFoundException::new));
     }
 
@@ -42,7 +44,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public void deleteById(Long id) {
+    public void deleteById(UUID id) {
         var user = repository.findById(id).orElseThrow(UserNotFoundException::new);
         repository.delete(user);
 

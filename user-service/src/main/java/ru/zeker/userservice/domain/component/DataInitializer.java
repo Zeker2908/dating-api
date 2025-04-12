@@ -32,7 +32,7 @@ public class DataInitializer implements CommandLineRunner {
     public void run(String... args){
         if (!userService.existsByEmail(adminName)) {
             final String password = generatePassword();
-            LOGGER.info("Creating admin user with email: {}", adminName);
+            LOGGER.info("Создание администратора с email: {}", adminName);
             User admin = User.builder()
                     .email(adminName)
                     .password(passwordEncoder.encode(password))
@@ -41,8 +41,8 @@ public class DataInitializer implements CommandLineRunner {
                     .enabled(true)
                     .build();
             userService.create(admin);
-            LOGGER.info("Admin user created successfully");
-            LOGGER.info(ANSI_GREEN + "Generated admin password: {}" + ANSI_RESET, password);
+            LOGGER.info("Администратор создан.");
+            LOGGER.info(ANSI_GREEN + "Сгенерированный пароль: {}" + ANSI_RESET, password);
         } else {
             LOGGER.info("Admin user already exists.");
         }

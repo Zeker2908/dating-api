@@ -113,17 +113,29 @@ public class AuthenticationController {
      * @return статус операции
      */
     @PostMapping("/logout")
-    public ResponseEntity<Void> logout(@CookieValue(name = "refresh_token", required = false) String refreshToken, 
+    public ResponseEntity<Void> logout(@CookieValue(name = "refresh_token") String refreshToken,
                                        HttpServletResponse response) {
         log.info("Запрос на выход из системы");
-        
-        if (refreshToken != null && !refreshToken.isEmpty()) {
-            refreshTokenService.revokeRefreshToken(refreshToken);
-        }
-        
+        refreshTokenService.revokeRefreshToken(refreshToken);
         ResponseCookie cookie = createRefreshTokenCookie("", Duration.ZERO);
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
         
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Выход пользователя из системы со всех устройств
+     *
+     * @param refreshToken токен обновления из cookie
+     * @param response HTTP-ответ для очистки cookie
+     * @return статус операции
+     */
+    @PostMapping("/logout/all")
+    public ResponseEntity<Void> revokeAllRefreshTokens(@CookieValue(name = "refresh_token") String refreshToken,
+        HttpServletResponse response){
+        refreshTokenService.revokeAllUserTokens(refreshToken);
+        ResponseCookie cookie = createRefreshTokenCookie("", Duration.ZERO);
+        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
         return ResponseEntity.noContent().build();
     }
 

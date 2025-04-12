@@ -5,6 +5,7 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
@@ -15,6 +16,7 @@ import java.security.Key;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 import java.util.function.Function;
 
 @Service
@@ -23,12 +25,20 @@ public class JwtService {
 
     private final JwtProperties jwtProperties;
 
+    private Key signingKey;
+
+    @PostConstruct
+    public void init() {
+        // Инициализируем ключ один раз при старте сервиса
+        this.signingKey = Keys.hmacShaKeyFor(Decoders.BASE64.decode(jwtProperties.getSecret()));
+    }
+
     public String extractUsername(String token){
         return extractClaim(token, Claims::getSubject);
     }
 
-    public Long extractUserId(String token){
-        return extractClaim(token, claims -> claims.get("id", Long.class));
+    public UUID extractUserId(String token){
+        return UUID.fromString(extractClaim(token, claims -> claims.get("id", String.class)));
     }
 
     public Date extractExpiration(String token) {
@@ -46,19 +56,26 @@ public class JwtService {
     }
 
     public String generateRefreshToken(UserDetails userDetails){
+        Map<String,Object> claims = new HashMap<>();
+        long currentTimeMillis = System.currentTimeMillis();
+        if(userDetails instanceof User customUserDetails){
+            claims.put("id", customUserDetails.getId());
+        }
         return Jwts.builder()
+                .setClaims(claims)
                 .setSubject(userDetails.getUsername())
-                .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + jwtProperties.getRefresh().getExpiration()))
-                .signWith(getSigningKey(),SignatureAlgorithm.HS256)
+                .setIssuedAt(new Date(currentTimeMillis))
+                .setExpiration(new Date(currentTimeMillis + jwtProperties.getRefresh().getExpiration()))
+                .signWith(signingKey,SignatureAlgorithm.HS256)
                 .compact();
     }
 
     private String generateToken(Map<String, Object> extraClaims, UserDetails userDetails) {
+        long currentTimeMillis = System.currentTimeMillis();
         return Jwts.builder().setClaims(extraClaims).setSubject(userDetails.getUsername())
-                .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + jwtProperties.getAccess().getExpiration()))
-                .signWith(getSigningKey(), SignatureAlgorithm.HS256).compact();
+                .setIssuedAt(new Date(currentTimeMillis))
+                .setExpiration(new Date(currentTimeMillis + jwtProperties.getAccess().getExpiration()))
+                .signWith(signingKey, SignatureAlgorithm.HS256).compact();
     }
 
     public boolean isTokenValid(String token, UserDetails userDetails) {
@@ -73,7 +90,7 @@ public class JwtService {
     private Claims extractAllClaims(String token){
         return Jwts
                 .parserBuilder()
-                .setSigningKey(getSigningKey())
+                .setSigningKey(signingKey)
                 .build()
                 .parseClaimsJws(token)
                 .getBody();
@@ -84,8 +101,4 @@ public class JwtService {
         return claimsResolver.apply(claims);
     }
 
-    
-    private Key getSigningKey() {
-        return Keys.hmacShaKeyFor(Decoders.BASE64.decode(jwtProperties.getSecret()));
-    }
 }
