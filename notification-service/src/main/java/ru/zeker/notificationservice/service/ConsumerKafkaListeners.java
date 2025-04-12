@@ -3,12 +3,14 @@ package ru.zeker.notificationservice.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 import ru.zeker.common.dto.UserRegisteredEvent;
 import ru.zeker.notificationservice.dto.EmailContext;
 import ru.zeker.notificationservice.exception.EmailSendingException;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -21,6 +23,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 @RequiredArgsConstructor
 public class ConsumerKafkaListeners {
     private final EmailService emailService;
+    private final RedisTemplate<String, String> redisTemplate;
 
     /**
      * Слушатель событий регистрации пользователей
@@ -43,12 +46,17 @@ public class ConsumerKafkaListeners {
         AtomicInteger errorCount = new AtomicInteger(0);
         
         records.forEach(record -> {
-            try {
-                processUserRegistrationEvent(record);
-                successCount.incrementAndGet();
-            } catch (Exception e) {
-                errorCount.incrementAndGet();
-                log.error("Ошибка обработки сообщения регистрации: {}", record.value(), e);
+            String eventKey = "event:" + record.value().getId();
+            if(Boolean.TRUE.equals(redisTemplate.opsForValue().setIfAbsent(eventKey, "processed", Duration.ofMinutes(16)))) {
+                try {
+                    processUserRegistrationEvent(record);
+                    successCount.incrementAndGet();
+                } catch (Exception e) {
+                    errorCount.incrementAndGet();
+                    log.error("Ошибка обработки сообщения регистрации: {}", record.value(), e);
+                }
+            }else {
+                log.warn("Событие регистрации {} уже было обработано", record.value().getId());
             }
         });
         

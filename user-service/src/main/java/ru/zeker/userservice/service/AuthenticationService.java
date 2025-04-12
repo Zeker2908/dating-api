@@ -18,6 +18,8 @@ import ru.zeker.userservice.domain.model.User;
 import ru.zeker.userservice.exception.InvalidTokenException;
 import ru.zeker.userservice.exception.UserAlreadyEnableException;
 
+import java.util.UUID;
+
 /**
  * Сервис для управления аутентификацией и регистрацией пользователей
  */
@@ -55,6 +57,7 @@ public class AuthenticationService {
         
         String token = jwtService.generateToken(user);
         UserRegisteredEvent userRegisteredEvent = UserRegisteredEvent.builder()
+                .id(UUID.randomUUID().toString())
                 .email(user.getEmail())
                 .token(token)
                 .firstName(user.getFirstName())
