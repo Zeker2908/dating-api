@@ -2,6 +2,7 @@ package ru.zeker.user_service.domain.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -18,6 +19,8 @@ public class RegisterRequest {
     @Email(message = "Email address must be in the format user@example.com")
     private String email;
 
+    @Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{8,255}$",
+            message = "Password must contain at least one uppercase letter, one lowercase letter, one digit, and one special character")
     @Size(min = 8, max = 255, message = "Password length must be between 8 and 255 characters")
     @NotBlank(message = "Password cannot be empty")
     private String password;

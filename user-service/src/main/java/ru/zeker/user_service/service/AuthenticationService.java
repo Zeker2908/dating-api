@@ -12,10 +12,8 @@ import ru.zeker.user_service.domain.dto.Tokens;
 import ru.zeker.user_service.domain.model.RefreshToken;
 import ru.zeker.user_service.domain.model.Role;
 import ru.zeker.user_service.domain.model.User;
-import ru.zeker.user_service.exception.TokenExpiredException;
+import ru.zeker.user_service.exception.InvalidTokenException;
 import ru.zeker.user_service.exception.UserAlreadyEnableException;
-
-import java.util.Date;
 
 @Service
 @RequiredArgsConstructor
@@ -74,8 +72,8 @@ public class AuthenticationService {
     }
 
     public void confirmEmail(String token) {
-        if(jwtService.extractExpiration(token).before(new Date())) throw new TokenExpiredException();
         User user = userService.findById(jwtService.extractUserId(token));
+        if(!jwtService.isTokenValid(token, user)) throw new InvalidTokenException();
         if (user.isEnabled()) throw new UserAlreadyEnableException();
         user.setEnabled(true);
         userService.update(user);
