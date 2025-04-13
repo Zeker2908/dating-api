@@ -10,7 +10,6 @@ spring:
     properties:
       mail:
         smtp:
-          connectionpoolsize: 50
           timeout: 5000
           auth: true
           starttls:
@@ -24,3 +23,8 @@ spring:
     config:
       uri: http://localhost:8888
       fail-fast: true
+  data:
+    redis:
+      host: localhost
+      port: 6380
+      database: 0

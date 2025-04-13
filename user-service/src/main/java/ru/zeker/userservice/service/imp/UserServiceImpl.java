@@ -27,6 +27,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional
     public User create(User user){
         if(repository.existsByEmail(user.getEmail())){
             throw new UserAlreadyExistsException();
@@ -35,6 +36,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional
     public User update(User user) {
        if(!repository.existsByEmail(user.getEmail())){
            throw new UserNotFoundException();

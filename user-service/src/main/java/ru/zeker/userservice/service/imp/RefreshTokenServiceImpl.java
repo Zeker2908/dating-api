@@ -67,7 +67,7 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
      * @throws TokenNotFoundException если токен не найден
      */
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public RefreshToken verifyRefreshToken(String token) {
         log.debug("Проверка refresh-токена");
 

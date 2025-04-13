@@ -39,7 +39,6 @@ public class AuthenticationService {
      *
      * @param request данные нового пользователя
      */
-    @Transactional
     public void register(RegisterRequest request) {
         log.info("Регистрация нового пользователя с email: {}", request.getEmail());
         
@@ -73,7 +72,6 @@ public class AuthenticationService {
      * @param request данные для входа
      * @return объект с JWT и refresh токенами
      */
-    @Transactional
     public Tokens login(LoginRequest request) {
         log.info("Попытка входа пользователя: {}", request.getEmail());
         
@@ -106,7 +104,6 @@ public class AuthenticationService {
      * @param refreshToken токен обновления
      * @return новый набор токенов
      */
-    @Transactional
     public Tokens refreshToken(String refreshToken) {
         log.debug("Запрос на обновление токена");
         
@@ -131,7 +128,6 @@ public class AuthenticationService {
      * @throws InvalidTokenException если токен недействителен
      * @throws UserAlreadyEnableException если email уже подтвержден
      */
-    @Transactional
     public void confirmEmail(String token) {
         log.info("Запрос на подтверждение email");
         

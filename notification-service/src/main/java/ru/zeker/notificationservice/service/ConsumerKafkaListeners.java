@@ -45,6 +45,7 @@ public class ConsumerKafkaListeners {
         AtomicInteger successCount = new AtomicInteger(0);
         AtomicInteger errorCount = new AtomicInteger(0);
         
+        // Возвращаем последовательную обработку сообщений
         records.forEach(record -> {
             String eventKey = "event:" + record.value().getId();
             if(Boolean.TRUE.equals(redisTemplate.opsForValue().setIfAbsent(eventKey, "processed", Duration.ofMinutes(16)))) {
@@ -63,7 +64,8 @@ public class ConsumerKafkaListeners {
         log.info("Обработка пакета завершена. Успешно: {}, Ошибок: {}", 
                 successCount.get(), errorCount.get());
     }
-    
+
+
     /**
      * Обрабатывает отдельное событие регистрации пользователя
      *
@@ -80,14 +82,15 @@ public class ConsumerKafkaListeners {
         
         // Настройка и отправка письма подтверждения
         EmailContext emailContext = emailService.configureEmailContext(event);
-        emailService.sendEmail(emailContext)
-                .exceptionally(ex -> {
-                    log.error("Не удалось отправить письмо подтверждения для {}: {}", 
-                            event.getEmail(), ex.getMessage());
-                    return null;
-                });
         
-        log.info("Событие регистрации успешно обработано для: {}", event.getEmail());
+        // Запускаем отправку асинхронно и не блокируем текущий поток
+        emailService.sendEmail(emailContext).exceptionally(ex -> {
+            log.error("Не удалось отправить письмо подтверждения для {}: {}",
+                    event.getEmail(), ex.getMessage());
+            return null;
+        });
+        
+        log.info("Событие регистрации обработано и запущена асинхронная отправка для: {}", event.getEmail());
     }
     
     /**
