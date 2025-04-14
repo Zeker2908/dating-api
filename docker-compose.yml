@@ -11,12 +11,12 @@ services:
     volumes:
       - pgdata_users:/var/lib/postgresql/data
 
-  mongodb:
-    image: mongo:6
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongodb_data:/data/db
+#  mongodb:
+#    image: mongo:6
+#    ports:
+#      - "27017:27017"
+#    volumes:
+#      - mongodb_data:/data/db
 
   redis-users:
     image: redis:7

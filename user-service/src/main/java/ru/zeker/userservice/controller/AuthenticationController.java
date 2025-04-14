@@ -10,10 +10,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import ru.zeker.userservice.domain.dto.AuthenticationResponse;
-import ru.zeker.userservice.domain.dto.LoginRequest;
-import ru.zeker.userservice.domain.dto.RegisterRequest;
-import ru.zeker.userservice.domain.dto.Tokens;
+import ru.zeker.userservice.domain.dto.*;
 import ru.zeker.userservice.service.AuthenticationService;
 import ru.zeker.userservice.service.RefreshTokenService;
 
@@ -75,13 +72,51 @@ public class AuthenticationController {
      * @param token токен подтверждения
      * @return сообщение о статусе операции
      */
-    @PostMapping("/confirm")
+    @PostMapping("/confirm-email")
     public ResponseEntity<Map<String, String>> confirmEmail(@RequestParam @NotNull String token) {
         log.info("Запрос на подтверждение email");
         authenticationService.confirmEmail(token);
         
         Map<String, String> response = new HashMap<>();
         response.put("message", "Email успешно подтвержден");
+        response.put("status", "success");
+        
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Запрос на восстановление пароля
+     * 
+     * @param request данные для восстановления пароля (email)
+     * @return сообщение о статусе операции
+     */
+    @PostMapping("/forgot-password")
+    public ResponseEntity<Map<String, String>> forgotPassword(@RequestBody @Valid ForgotPasswordRequest request) {
+        log.info("Запрос на восстановление пароля: {}", request.getEmail());
+        authenticationService.forgotPassword(request);
+        
+        Map<String, String> response = new HashMap<>();
+        response.put("message", "Инструкции по восстановлению пароля отправлены на ваш email");
+        response.put("status", "success");
+        
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Сброс пароля пользователя по токену
+     * 
+     * @param token токен для сброса пароля
+     * @param request новый пароль
+     * @return сообщение о статусе операции
+     */
+    @PostMapping("/reset-password")
+    public ResponseEntity<Map<String, String>> resetPassword(@RequestParam @NotNull String token,
+                                                             @RequestBody @Valid ResetPasswordRequest request) {
+        log.info("Запрос на сброс пароля");
+        authenticationService.resetPassword(request, token);
+        
+        Map<String, String> response = new HashMap<>();
+        response.put("message", "Пароль успешно восстановлен");
         response.put("status", "success");
         
         return ResponseEntity.ok(response);

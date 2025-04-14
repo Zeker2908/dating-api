@@ -4,14 +4,18 @@ import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
-import ru.zeker.common.dto.UserRegisteredEvent;
+import ru.zeker.common.dto.EmailEvent;
 
 @Service
 @RequiredArgsConstructor
 public class KafkaProducer {
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
-    public void sendEmailVerification(@NotNull UserRegisteredEvent userRegisteredEvent) {
-        kafkaTemplate.send("user-registered-events", userRegisteredEvent);
+    public void sendEmailVerification(@NotNull EmailEvent event) {
+        kafkaTemplate.send("user-registered-events", event);
+    }
+
+    public void sendForgotPassword(@NotNull EmailEvent event) {
+        kafkaTemplate.send("forgot-password-events", event);
     }
 }

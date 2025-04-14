@@ -1,17 +1,12 @@
 package ru.zeker.common.dto;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
-import java.util.UUID;
+import lombok.*;
 
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class UserRegisteredEvent {
+public class EmailEvent {
     private String id;
     private String email;
     private String token;

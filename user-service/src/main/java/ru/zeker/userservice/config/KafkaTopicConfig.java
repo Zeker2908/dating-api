@@ -17,4 +17,14 @@ public class KafkaTopicConfig {
                 .config("retention.ms", "604800000")
                 .build();
     }
+
+    @Bean
+    public NewTopic forgotPasswordTopic() {
+        return TopicBuilder
+                .name("forgot-password-events")
+                .partitions(32)
+                .replicas(1)
+                .config("retention.ms", "604800000")
+                .build();
+    }
 }

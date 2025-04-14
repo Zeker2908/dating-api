@@ -6,12 +6,9 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
-import ru.zeker.common.dto.UserRegisteredEvent;
-import ru.zeker.userservice.domain.dto.LoginRequest;
-import ru.zeker.userservice.domain.dto.RegisterRequest;
-import ru.zeker.userservice.domain.dto.Tokens;
+import ru.zeker.common.dto.EmailEvent;
+import ru.zeker.userservice.domain.dto.*;
 import ru.zeker.userservice.domain.model.RefreshToken;
 import ru.zeker.userservice.domain.model.Role;
 import ru.zeker.userservice.domain.model.User;
@@ -55,7 +52,7 @@ public class AuthenticationService {
         log.debug("Пользователь создан в базе данных: {}", user.getEmail());
         
         String token = jwtService.generateToken(user);
-        UserRegisteredEvent userRegisteredEvent = UserRegisteredEvent.builder()
+        EmailEvent userRegisteredEvent = EmailEvent.builder()
                 .id(UUID.randomUUID().toString())
                 .email(user.getEmail())
                 .token(token)
@@ -147,5 +144,53 @@ public class AuthenticationService {
         userService.update(user);
         
         log.info("Email успешно подтвержден для пользователя: {}", user.getEmail());
+    }
+
+    /**
+     * Обработка запроса на восстановление пароля
+     * Отправляет email с инструкциями для сброса пароля
+     *
+     * @param request запрос с email пользователя
+     */
+    public void forgotPassword(ForgotPasswordRequest request) {
+        log.info("Запрос на восстановление пароля для: {}", request.getEmail());
+        
+        User user = userService.findByEmail(request.getEmail());
+        String token = jwtService.generateToken(user);
+        
+        EmailEvent event = EmailEvent.builder()
+                .id(UUID.randomUUID().toString())
+                .email(user.getEmail())
+                .token(token)
+                .firstName(user.getFirstName())
+                .build();
+
+        kafkaProducer.sendForgotPassword(event);
+        log.info("Письмо с инструкцией для восстановления пароля отправлено на email: {}", user.getEmail());
+    }
+
+    /**
+     * Сброс пароля пользователя по токену
+     *
+     * @param request запрос с новым паролем
+     * @param token JWT токен для подтверждения
+     * @throws InvalidTokenException если токен недействителен
+     */
+    public void resetPassword(ResetPasswordRequest request, String token) {
+        log.info("Запрос на сброс пароля");
+        
+        User user = userService.findById(jwtService.extractUserId(token));
+        
+        if (!jwtService.isTokenValid(token, user)) {
+            log.warn("Попытка сброса пароля с недействительным токеном");
+            throw new InvalidTokenException();
+        }
+        
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
+        userService.update(user);
+        
+        refreshTokenService.revokeAllUserTokens(token);
+        
+        log.info("Пароль успешно сброшен для пользователя: {}", user.getEmail());
     }
 }
