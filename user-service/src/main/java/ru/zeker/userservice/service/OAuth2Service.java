@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
+import ru.zeker.userservice.domain.dto.OAuth2UserInfo;
 import ru.zeker.userservice.domain.model.OAuth2Provider;
 import ru.zeker.userservice.domain.model.Role;
 import ru.zeker.userservice.domain.model.User;
@@ -15,7 +16,6 @@ import java.util.Map;
 @Slf4j
 public class OAuth2Service {
     private final UserService userService;
-
     public User register(OAuth2User oAuth2User, String provider) {
         log.info("Запуск процесса регистрации пользователя OAuth2");
 
@@ -28,12 +28,14 @@ public class OAuth2Service {
         }
 
         Map<String, Object> attributes = oAuth2User.getAttributes();
-        String email = oAuth2User.getAttribute("email");
-        String firstName = oAuth2User.getAttribute("given_name");
-        String lastName = oAuth2User.getAttribute("family_name");
+        OAuth2UserInfo userInfo = oAuth2Provider.extractUserInfo(attributes);
+        String email = userInfo.getEmail();
+        String firstName = userInfo.getFirstName();
+        String lastName = userInfo.getLastName();
+        String oAuthId = userInfo.getOAuthId();
         
-        log.debug("Атрибуты регистрации OAuth2: email={}, firstName={}, lastName={}, availableAttrs={}",
-                email, firstName, lastName, attributes.keySet());
+        log.debug("Атрибуты регистрации OAuth2: email={}, firstName={}, lastName={}, oAuthId={}, availableAttrs={}",
+                email, firstName, lastName, oAuthId, attributes.keySet());
         
         User user = User.builder()
                 .email(email)
@@ -41,7 +43,7 @@ public class OAuth2Service {
                 .lastName(lastName)
                 .role(Role.USER)
                 .provider(oAuth2Provider)
-                .oAuthId(oAuth2User.getAttribute("sub"))
+                .oAuthId(oAuthId)
                 .enabled(true)
                 .build();
         

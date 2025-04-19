@@ -1,6 +1,5 @@
 package ru.zeker.userservice.domain.component;
 
-import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -11,7 +10,7 @@ import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
 import ru.zeker.userservice.domain.model.User;
-import ru.zeker.userservice.exception.EmailNotVerifiedException;
+import ru.zeker.userservice.exception.OAuth2ProviderException;
 import ru.zeker.userservice.repository.UserRepository;
 import ru.zeker.userservice.service.JwtService;
 import ru.zeker.userservice.service.OAuth2Service;
@@ -19,7 +18,6 @@ import ru.zeker.userservice.service.OAuth2Service;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.util.Map;
 
 @Component
 @RequiredArgsConstructor
@@ -30,7 +28,7 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
     private final OAuth2Service oAuth2Service;
 
     @Override
-    public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
+    public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException {
         log.info("Сработал обработчик успешного прохождения аутентификации OAuth2: remote={}, uri={}",
                 request.getRemoteAddr(), request.getRequestURI());
         try {
@@ -40,7 +38,7 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
             String provider = getOAuth2Provider(authentication);
             if (provider == null) {
                 log.error("Не удалось получить OAuth2Provider");
-                throw new Exception("Не удалось получить OAuth2Provider");
+                throw new OAuth2ProviderException("Не удалось получить OAuth2Provider");
             }
             log.info("OAuth2Provider получен: {}", provider);
 
@@ -50,7 +48,7 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
             
             if (emailVerified == null || !emailVerified) {
                 log.warn("Ошибка аутентификации OAuth2: адрес электронной почты не проверен для email={}", email);
-                throw new EmailNotVerifiedException();
+                throw new OAuth2ProviderException("Email не верифицирован");
             }
             
             User user = userRepository.findByEmail(email).orElseGet(() -> {
@@ -66,9 +64,6 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
                     "&refreshToken=" + URLEncoder.encode(refreshToken, StandardCharsets.UTF_8);
             log.info("Перенаправление аутентифицированного пользователя на: {}", "/api/v1/oauth2/success");
             response.sendRedirect(redirectUrl);
-        } catch (EmailNotVerifiedException e) {
-            log.error("Ошибка аутентификации OAuth2: адрес электронной почты не проверен");
-            response.sendRedirect("/api/v1/oauth2/failure");
         } catch (Exception e) {
             log.error("Ошибка OAuth2SuccessHandler: {}", e.getMessage(), e);
             response.sendRedirect("/api/v1/oauth2/failure");
@@ -77,7 +72,7 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
 
     private String getOAuth2Provider(Authentication authentication) {
         if (authentication instanceof OAuth2AuthenticationToken oauthToken) {
-            return oauthToken.getAuthorizedClientRegistrationId(); // Возвращает "google", "github" и т. д.
+            return oauthToken.getAuthorizedClientRegistrationId();
         }
         return null;
     }

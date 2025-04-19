@@ -1,19 +1,4 @@
-#server:
-#  forward-headers-strategy: framework
-# TODO: разобраться с базовой урлой
 spring:
-  security:
-    oauth2:
-      client:
-        registration:
-          google:
-            client-id: ${$CLIENT_ID}
-            client-secret: ${CLIENT_SECRET}
-            redirect-uri: http://localhost:8080/login/oauth2/code/{registrationId}
-            scope:
-              - email
-              - profile
-              - openid
   application:
     name: user-service
   cloud:
