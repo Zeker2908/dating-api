@@ -25,13 +25,12 @@ import java.util.UUID;
 public class User implements UserDetails {
 
     @Id
-    @GeneratedValue(generator = "uuid2")
+    @GeneratedValue(generator = "UUID")
     private UUID id;
 
     @Column(unique = true, nullable = false)
     private String email;
 
-    @Column(nullable = false)
     private String password;
 
     private String firstName;
@@ -41,6 +40,11 @@ public class User implements UserDetails {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Role role;
+
+    @Enumerated(EnumType.STRING)
+    private OAuth2Provider provider;
+
+    private String oAuthId;
 
     @Column(nullable = false)
     private Boolean enabled;

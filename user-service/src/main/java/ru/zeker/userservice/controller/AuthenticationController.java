@@ -181,7 +181,7 @@ public class AuthenticationController {
      * @param duration срок действия
      * @return cookie с токеном обновления
      */
-    private ResponseCookie createRefreshTokenCookie(String value, Duration duration) {
+    public static ResponseCookie createRefreshTokenCookie(String value, Duration duration) {
         return ResponseCookie.from("refresh_token", value)
                 .httpOnly(true)
                 .secure(true)
