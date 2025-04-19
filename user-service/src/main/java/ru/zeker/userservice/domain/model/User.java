@@ -33,6 +33,7 @@ public class User implements UserDetails {
 
     private String password;
 
+    @Column(nullable = false)
     private String firstName;
 
     private String lastName;

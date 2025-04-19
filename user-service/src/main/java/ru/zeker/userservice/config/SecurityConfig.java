@@ -39,12 +39,34 @@ public class SecurityConfig {
     private final OAuth2SuccessHandler oAuth2SuccessHandler;
     private final JwtProperties jwtProperties;
 
+
+    /**
+     * Настраивает {@link SecurityFilterChain} для конечных точек OAuth2.
+     *
+     * <p>Этот метод настраивает {@link SecurityFilterChain} для конечных точек OAuth2 и используется для обработки запросов аутентификации OAuth2
+     *. Цепочка настроена на разрешение всех запросов к конечным точкам OAuth2, отключение защиты CSRF
+     * и использование настраиваемого {@link OAuth2UserService} для обработки конечной точки с информацией о пользователе. Цепочка также настраивает
+     * настраиваемый обработчик успеха и обработчик сбоев.
+     *
+     * <p>Цепочка настроена на использование {@link OAuth2SuccessHandler} для обработки успешных запросов аутентификации OAuth2.
+     * Обработчик настроен на перенаправление пользователя на URL-адрес успеха по умолчанию после успешной
+     * аутентификации.
+     *
+     * <p>Цепочка также настроена на использование настраиваемого обработчика сбоев для обработки сбоев аутентификации OAuth2. Обработчик
+     * настроен на перенаправление пользователя на URL-адрес сбоя по умолчанию после сбоя аутентификации.
+     *
+     * <p>Цепочка настроена на создание сеанса для запросов аутентификации OAuth2, как того требует спецификация OAuth2.
+     *
+     * @param http объект {@link HttpSecurity}, используемый для настройки цепочки фильтров
+     * @return настроенный {@link SecurityFilterChain}
+     * @throws Exception, если при настройке цепочки фильтров возникает ошибка
+     */
     @Bean
     @Order(1)
     public SecurityFilterChain oauthEndpointsFilterChain(HttpSecurity http) throws Exception {
         log.info("Настройка цепочки фильтров безопасности конечных точек OAuth2");
         http
-                .securityMatcher("/oauth2/**", "/login/oauth2/**", "/api/v1/oauth2/**")
+                .securityMatcher("/oauth2/**", "/login/oauth2/**")
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> {
                     log.debug("Настройка разрешения для OAuth2 путей");
@@ -62,8 +84,8 @@ public class SecurityConfig {
                             log.debug("Настройка redirectionEndpoint: baseUri={}", "/login/oauth2/code/*");
                             endpoint.baseUri("/login/oauth2/code/*");
                         })
-                        .failureUrl("/api/v1/oauth2/failure")
-                        .defaultSuccessUrl("/api/v1/oauth2/success")
+                        .failureUrl("/oauth2/failure")
+                        .defaultSuccessUrl("/oauth2/success")
                         .userInfoEndpoint(userInfo -> {
                             log.debug("Настройка OAuth2 userInfoEndpoint с помощью пользовательского OAuth2UserService");
                             userInfo.userService(oAuth2UserService());
@@ -71,7 +93,7 @@ public class SecurityConfig {
                         .successHandler(oAuth2SuccessHandler)
                         .failureHandler((request, response, exception) -> {
                             log.error("Ошибка при OAuth2 аутентификации: {}", exception.getMessage(), exception);
-                            response.sendRedirect("/api/v1/oauth2/failure");
+                            response.sendRedirect("/oauth2/failure");
                         });
                     log.debug("Настройка входа OAuth2 завершена");
                 })
@@ -83,11 +105,22 @@ public class SecurityConfig {
         return http.build();
     }
 
+    /**
+     * Формирует цепочку фильтров безопасности для конечных точек аутентификации.
+     *
+     * <p>Конечные точки аутентификации не требуют аутентификации, поэтому для них
+     * выключается CSRF-защита, а авторизация разрешается для любых запросов.
+     * </p>
+     *
+     * @param http объект {@link HttpSecurity}, используемый для настройки цепочки фильтров
+     * @return настроенный {@link SecurityFilterChain}
+     * @throws Exception, если при настройке цепочки фильтров возникает ошибка
+     */
     @Bean
     @Order(2)
     public SecurityFilterChain authEndpointsFilterChain(HttpSecurity http) throws Exception {
         http
-                .securityMatcher("/api/v1/auth/**")
+                .securityMatcher("/auth/**")
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
                 .userDetailsService(userDetailsService())
@@ -96,6 +129,21 @@ public class SecurityConfig {
         return http.build();
     }
 
+    /**
+     * Настраивает основную цепочку фильтров безопасности для защищенных конечных точек.
+     * 
+     * <p>Эта цепочка фильтров применяется ко всем запросам, которые не обрабатываются
+     * цепочками фильтров OAuth2 и аутентификации. Она требует, чтобы все запросы были
+     * аутентифицированы, отключает CSRF-защиту и настраивает управление сессиями
+     * как STATELESS, что соответствует подходу REST API.</p>
+     * 
+     * <p>Цепочка также добавляет пользовательский фильтр валидации заголовков перед
+     * стандартным фильтром аутентификации по имени пользователя и паролю.</p>
+     *
+     * @param http объект {@link HttpSecurity}, используемый для настройки цепочки фильтров
+     * @return настроенный {@link SecurityFilterChain}
+     * @throws Exception если при настройке цепочки фильтров возникает ошибка
+     */
     @Bean
     @Order(3)
     public SecurityFilterChain mainFilterChain(HttpSecurity http) throws Exception {

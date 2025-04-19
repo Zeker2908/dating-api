@@ -27,6 +27,18 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
     private final UserRepository userRepository;
     private final OAuth2Service oAuth2Service;
 
+    /**
+     * Обработчик успешной аутентификации OAuth2.
+     * <p>
+     *     Если пользователь не найден, то регистрирует его.
+     *     Если пользователь найден, то генерирует токены доступа и обновления.
+     *     Если аутентификация не удалась, то перенаправляет на /api/v1/oauth2/failure.
+     * </p>
+     * @param request        HTTP-запрос
+     * @param response       HTTP-ответ
+     * @param authentication результат аутентификации
+     * @throws IOException   ошибка ввода-вывода
+     */
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException {
         log.info("Сработал обработчик успешного прохождения аутентификации OAuth2: remote={}, uri={}",
@@ -60,16 +72,23 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
             String accessToken = jwtService.generateToken(user);
             String refreshToken = jwtService.generateRefreshToken(user);
 
-            String redirectUrl = "/api/v1/oauth2/success?accessToken=" + URLEncoder.encode(accessToken, StandardCharsets.UTF_8) +
+            String redirectUrl = "/oauth2/success?accessToken=" + URLEncoder.encode(accessToken, StandardCharsets.UTF_8) +
                     "&refreshToken=" + URLEncoder.encode(refreshToken, StandardCharsets.UTF_8);
-            log.info("Перенаправление аутентифицированного пользователя на: {}", "/api/v1/oauth2/success");
+            log.info("Перенаправление аутентифицированного пользователя на: {}", "/oauth2/success");
             response.sendRedirect(redirectUrl);
         } catch (Exception e) {
             log.error("Ошибка OAuth2SuccessHandler: {}", e.getMessage(), e);
-            response.sendRedirect("/api/v1/oauth2/failure");
+            response.sendRedirect("/oauth2/failure");
         }
     }
 
+
+    /**
+     * Извлекает имя поставщика OAuth2 из указанного токена аутентификации.
+     *
+     * @param authentication токен аутентификации, из которого извлекается поставщик
+     * @return имя поставщика OAuth2, если доступно, в противном случае null
+     */
     private String getOAuth2Provider(Authentication authentication) {
         if (authentication instanceof OAuth2AuthenticationToken oauthToken) {
             return oauthToken.getAuthorizedClientRegistrationId();

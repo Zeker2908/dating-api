@@ -16,7 +16,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 
 @RestController
-@RequestMapping("api/v1/oauth2")
+@RequestMapping("/oauth2")
 public class OAuth2Controller {
     @GetMapping("/success")
     public ResponseEntity<AuthenticationResponse> success(@RequestParam String accessToken, @RequestParam String refreshToken,

@@ -28,6 +28,12 @@ public class DataInitializer implements CommandLineRunner {
     @Value("${admin.username}")
     private String adminName;
 
+    /**
+     * Инициализирует администратора в системе.
+     * Если администратор с данным email не существует, то создает администратора с сгенерированным паролем.
+     * Логирует информацию о созданном администраторе.
+     * @param args аргументы командной строки
+     */
     @Override
     public void run(String... args){
         if (!userService.existsByEmail(adminName)) {
@@ -48,6 +54,10 @@ public class DataInitializer implements CommandLineRunner {
         }
     }
 
+    /**
+     * Генерирует случайный пароль из {@value #CHARACTERS} длиной {@value #STRING_LENGTH}.
+     * @return сгенерированный пароль
+     */
     private String generatePassword() {
         SecureRandom random = new SecureRandom();
         StringBuilder password = new StringBuilder(STRING_LENGTH);

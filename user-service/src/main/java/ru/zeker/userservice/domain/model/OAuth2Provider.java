@@ -6,6 +6,7 @@ import java.util.Map;
 
 public enum OAuth2Provider {
     GOOGLE{
+
         @Override
         public OAuth2UserInfo extractUserInfo(Map<String, Object> attributes) {
             return new OAuth2UserInfo(
@@ -19,5 +20,12 @@ public enum OAuth2Provider {
     };
 
 
+
+    /**
+     * Извлекает информацию о пользователе из заданных атрибутов OAuth2.
+     *
+     * @param attributes атрибутов от поставщика OAuth2
+     * @return извлеченная информация о пользователе
+     */
     public abstract OAuth2UserInfo extractUserInfo(Map<String, Object> attributes);
 }

@@ -16,6 +16,13 @@ import java.util.Map;
 @Slf4j
 public class OAuth2Service {
     private final UserService userService;
+    /**
+     * Регистрирует нового пользователя с помощью предоставленных строк OAuth2User и OAuth2Provider.
+     *
+     * @param oAuth2User OAuth2User для регистрации
+     * @param provider строка OAuth2Provider
+     * @return созданный пользователь
+     */
     public User register(OAuth2User oAuth2User, String provider) {
         log.info("Запуск процесса регистрации пользователя OAuth2");
 
