@@ -178,7 +178,7 @@ public class EmailService {
      * @return полный URL для подтверждения
      */
     private String buildVerificationUrl(String token) {
-        return applicationUrl + "/api/v1/auth/confirm-email?token=" + token;
+        return applicationUrl + "/api/v1/auth/email-confirmation?token=" + token;
     }
     
     /**
@@ -188,6 +188,6 @@ public class EmailService {
      * @return полный URL для восстановления пароля
      */
     private String buildResetPasswordUrl(String token) {
-        return applicationUrl + "/api/v1/auth/reset-password?token=" + token;
+        return applicationUrl + "/api/v1/auth/password-reset?token=" + token;
     }
 }
