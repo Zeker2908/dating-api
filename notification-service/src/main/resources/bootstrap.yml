@@ -28,3 +28,7 @@ spring:
       host: localhost
       port: 6380
       database: 0
+app:
+  links:
+    email-verification: /api/v1/auth/email-confirmation
+    password-reset: /api/v1/auth/password-reset

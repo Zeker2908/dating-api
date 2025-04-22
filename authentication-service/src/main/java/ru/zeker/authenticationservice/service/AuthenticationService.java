@@ -186,6 +186,7 @@ public class AuthenticationService {
      * @param token JWT токен для подтверждения
      * @throws InvalidTokenException если токен недействителен
      */
+    //TODO: Сделать так, чтобы токен был одноразовый
     public void resetPassword(ResetPasswordRequest request, String token) {
         log.info("Запрос на сброс пароля");
         
@@ -195,11 +196,9 @@ public class AuthenticationService {
             log.warn("Попытка сброса пароля с недействительным токеном");
             throw new InvalidTokenException();
         }
-        
-        // Сохраняем новый пароль в истории паролей
+
         passwordHistoryService.savePassword(user, request.getPassword());
-        
-        // Устанавливаем новый пароль
+
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         userService.update(user);
         

@@ -10,6 +10,7 @@ import ru.zeker.authenticationservice.domain.model.enums.Role;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 @EqualsAndHashCode(callSuper = true)
@@ -47,6 +48,9 @@ public class User extends BaseEntity implements UserDetails {
 
     @Column(nullable = false)
     private Boolean locked;
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    private List<PasswordHistory> passwordHistory;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {

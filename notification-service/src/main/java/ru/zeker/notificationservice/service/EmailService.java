@@ -41,6 +41,12 @@ public class EmailService {
     @Value("${spring.application.url}")
     private String applicationUrl;
 
+    @Value("${app.links.email-verification}")
+    private String emailVerificationUrl;
+
+    @Value("${app.links.password-reset}")
+    private String passwordResetUrl;
+
     /**
      * Асинхронно отправляет электронное письмо на основе данных контекста
      *
@@ -178,7 +184,7 @@ public class EmailService {
      * @return полный URL для подтверждения
      */
     private String buildVerificationUrl(String token) {
-        return applicationUrl + "/api/v1/auth/email-confirmation?token=" + token;
+        return applicationUrl + emailVerificationUrl + "?token=" + token;
     }
     
     /**
@@ -188,6 +194,6 @@ public class EmailService {
      * @return полный URL для восстановления пароля
      */
     private String buildResetPasswordUrl(String token) {
-        return applicationUrl + "/api/v1/auth/password-reset?token=" + token;
+        return applicationUrl + passwordResetUrl + "?token=" + token;
     }
 }

@@ -1,10 +1,10 @@
 package ru.zeker.authenticationservice.service.imp;
 
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ru.zeker.authenticationservice.domain.model.entity.PasswordHistory;
 import ru.zeker.authenticationservice.domain.model.entity.User;
 import ru.zeker.authenticationservice.repository.PasswordHistoryRepository;
@@ -54,7 +54,7 @@ public class PasswordHistoryServiceImpl implements PasswordHistoryService {
             removeOldestPasswords(user.getId(), existingPasswords.size() - maxPasswordHistoryCount + 1);
         }
     }
-    
+
     private void removeOldestPasswords(UUID userId, int countToRemove) {
         Set<PasswordHistory> passwordsToRemove = findAllByUserId(userId).stream()
                 .sorted(Comparator.comparing(PasswordHistory::getCreatedAt))

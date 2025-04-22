@@ -14,3 +14,7 @@ logging:
     ru.zeker.userservice.service.OAuth2Service: DEBUG
     ru.zeker.userservice.domain.component.OAuth2SuccessHandler: DEBUG
     ru.zeker.userservice.config.SecurityConfig: DEBUG
+app:
+  security:
+    password-history:
+      max-count: 5

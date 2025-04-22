@@ -95,7 +95,7 @@ public class AuthenticationController {
      * @param request данные для восстановления пароля (email)
      * @return сообщение о статусе операции
      */
-    @PostMapping("/password-reset-request")
+    @PostMapping("/password-reset/request")
     public ResponseEntity<Map<String, String>> forgotPassword(@RequestBody @Valid ForgotPasswordRequest request) {
         log.info("Запрос на восстановление пароля: {}", request.getEmail());
         authenticationService.forgotPassword(request);
