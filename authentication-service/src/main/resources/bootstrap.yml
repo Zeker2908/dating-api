@@ -10,10 +10,7 @@ logging:
     root: INFO
     org.springframework.security: DEBUG
     eureka: INFO
-    ru.zeker: DEBUG
-    ru.zeker.userservice.service.OAuth2Service: DEBUG
-    ru.zeker.userservice.domain.component.OAuth2SuccessHandler: DEBUG
-    ru.zeker.userservice.config.SecurityConfig: DEBUG
+    ru.zeker: DEBUGz
 app:
   security:
     password-history:
