@@ -2,6 +2,7 @@ package ru.zeker.authenticationservice.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -20,6 +21,7 @@ import ru.zeker.authenticationservice.domain.model.entity.User;
 import ru.zeker.authenticationservice.exception.InvalidTokenException;
 import ru.zeker.authenticationservice.exception.UserAlreadyEnableException;
 
+import java.time.Duration;
 import java.util.UUID;
 
 /**
@@ -36,6 +38,7 @@ public class AuthenticationService {
     private final RefreshTokenService refreshTokenService;
     private final KafkaProducer kafkaProducer;
     private final PasswordHistoryService passwordHistoryService;
+    private final RedisTemplate<String, String> redisTemplate;
 
     /**
      * Регистрация нового пользователя и отправка сообщения для верификации email
@@ -157,7 +160,7 @@ public class AuthenticationService {
     }
 
     /**
-     * Обработка запроса на восстановление пароля
+     * Обработка запроса на восстановление пароля.
      * Отправляет email с инструкциями для сброса пароля
      *
      * @param request запрос с email пользователя
@@ -166,7 +169,7 @@ public class AuthenticationService {
         log.info("Запрос на восстановление пароля для: {}", request.getEmail());
         
         User user = userService.findByEmail(request.getEmail());
-        String token = jwtService.generateToken(user);
+        String token = jwtService.generateOnceVerificationToken(user);
         
         EmailEvent event = EmailEvent.builder()
                 .id(UUID.randomUUID().toString())
@@ -186,12 +189,16 @@ public class AuthenticationService {
      * @param token JWT токен для подтверждения
      * @throws InvalidTokenException если токен недействителен
      */
-    //TODO: Сделать так, чтобы токен был одноразовый
     public void resetPassword(ResetPasswordRequest request, String token) {
         log.info("Запрос на сброс пароля");
-        
+
+        if(Boolean.FALSE.equals(redisTemplate.opsForValue().setIfAbsent(jwtService.extractNonce(token), "proccesed", Duration.ofMinutes(15)))){
+            log.warn("Токен уже был обработан");
+            throw new InvalidTokenException();
+        }
+
         User user = userService.findById(jwtService.extractUserId(token));
-        
+
         if (!jwtService.isTokenValid(token, user)) {
             log.warn("Попытка сброса пароля с недействительным токеном");
             throw new InvalidTokenException();
@@ -201,9 +208,10 @@ public class AuthenticationService {
 
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         userService.update(user);
-        
+
         refreshTokenService.revokeAllUserTokens(token);
-        
+
         log.info("Пароль успешно сброшен для пользователя: {}", user.getEmail());
+
     }
 }

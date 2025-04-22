@@ -45,6 +45,10 @@ public class JwtService {
         return extractClaim(token, Claims::getExpiration);
     }
 
+    public String extractNonce(String token) {
+        return extractClaim(token, claims -> claims.get("nonce", String.class));
+    }
+
     public String generateToken(UserDetails userDetails){
         Map<String, Object> claims = new HashMap<>();
         if(userDetails instanceof User customUserDetails){
@@ -66,6 +70,22 @@ public class JwtService {
                 .setSubject(userDetails.getUsername())
                 .setIssuedAt(new Date(currentTimeMillis))
                 .setExpiration(new Date(currentTimeMillis + jwtProperties.getRefresh().getExpiration()))
+                .signWith(signingKey,SignatureAlgorithm.HS256)
+                .compact();
+    }
+
+    public String generateOnceVerificationToken(UserDetails userDetails){
+        Map<String,Object> claims = new HashMap<>();
+        long currentTimeMillis = System.currentTimeMillis();
+        if(userDetails instanceof User customUserDetails){
+            claims.put("id", customUserDetails.getId());
+            claims.put("nonce", UUID.randomUUID().toString());
+        }
+        return Jwts.builder()
+                .setClaims(claims)
+                .setSubject(userDetails.getUsername())
+                .setIssuedAt(new Date(currentTimeMillis))
+                .setExpiration(new Date(currentTimeMillis+jwtProperties.getAccess().getExpiration()))
                 .signWith(signingKey,SignatureAlgorithm.HS256)
                 .compact();
     }
