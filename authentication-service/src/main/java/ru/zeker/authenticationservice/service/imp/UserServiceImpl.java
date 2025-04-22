@@ -1,5 +1,6 @@
 package ru.zeker.authenticationservice.service.imp;
 
+import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
@@ -46,26 +47,30 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public User create(User user) {
+    public User create(@NotNull User user) {
         if (repository.existsByEmail(user.getEmail())) {
             throw new UserAlreadyExistsException("Пользователь с email " + user.getEmail() + " уже существует");
         }
-        
-        // Сначала сохраняем пользователя с зашифрованным паролем
-        String rawPassword = user.getPassword();
-        user.setPassword(passwordEncoder.encode(rawPassword));
-        User savedUser = repository.save(user);
-        
-        // Затем сохраняем историю пароля
-        passwordHistoryService.savePassword(savedUser, rawPassword);
 
-        log.info("Создан новый пользователь с ID: {}", savedUser.getId());
-        return savedUser;
+       if(user.getPassword() != null) {
+           String rawPassword = user.getPassword();
+           user.setPassword(passwordEncoder.encode(rawPassword));
+           User savedUser = repository.save(user);
+
+           passwordHistoryService.savePassword(savedUser, rawPassword);
+       } else if (user.getOAuthId() != null) {
+             repository.save(user);
+       } else {
+           throw new IllegalArgumentException("User должен иметь либо пароль, либо OAuthId");
+       }
+
+        log.info("Создан новый пользователь с ID: {}", user.getId());
+        return user;
     }
 
     @Override
     @Transactional
-    public User update(User updatedUser) {
+    public User update(@NotNull User updatedUser) {
         User existingUser = repository.findById(updatedUser.getId())
                 .orElseThrow(() -> new UserNotFoundException("Пользователь с ID " + updatedUser.getId() + " не найден"));
         
