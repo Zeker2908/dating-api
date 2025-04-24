@@ -13,7 +13,6 @@ import ru.zeker.notificationservice.dto.EmailContext;
 
 import java.time.Duration;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
 /**
@@ -27,7 +26,7 @@ public class ConsumerKafkaListeners {
     private final EmailService emailService;
     private final RedisTemplate<String, String> redisTemplate;
 
-    @Value("${app.redis.duration}")
+    @Value("${app.redis.duration:15}")
     private int redisDuration;
 
 
@@ -47,18 +46,16 @@ public class ConsumerKafkaListeners {
     ) {
         int totalRecords = records.size();
         log.info("Получен пакет из {} сообщений", totalRecords);
-        AtomicInteger successCount = new AtomicInteger(0);
-        AtomicInteger errorCount = new AtomicInteger(0);
 
         records.forEach(record -> {
             switch (record.value().getType()){
                 case EMAIL_VERIFICATION:
                     log.info("Получено событие подтверждения email: {}", record.value());
-                    processEmailEvent(record, emailService::configureEmailVerificationContext, successCount, errorCount);
+                    processEmailEvent(record, emailService::configureEmailVerificationContext);
                     break;
                 case FORGOT_PASSWORD:
                     log.info("Получено событие восстановления пароля: {}", record.value());
-                    processEmailEvent(record, emailService::configureForgotPasswordContext, successCount, errorCount);
+                    processEmailEvent(record, emailService::configureForgotPasswordContext);
                     break;
                 default:
                     log.error("Получено неизвестное событие: {}", record.value());
@@ -66,8 +63,7 @@ public class ConsumerKafkaListeners {
             }
         });
 
-        log.info("Обработка пакета событий завершена. Успешно: {}, Ошибок: {}",
-                 successCount.get(), errorCount.get());
+        log.info("Обработка пакета событий завершена");
     }
 
 
@@ -76,20 +72,15 @@ public class ConsumerKafkaListeners {
      *
      * @param record запись из Kafka
      * @param contextConfigurator функция для создания контекста для отправки email
-     * @param successCount счетчик успешных операций
-     * @param errorCount счетчик ошибок
      */
     private void processEmailEvent(
             ConsumerRecord<String, EmailEvent> record, 
-            Function<EmailEvent, EmailContext> contextConfigurator,
-            AtomicInteger successCount, 
-            AtomicInteger errorCount
+            Function<EmailEvent, EmailContext> contextConfigurator
     ) {
 
         EmailEvent event = record.value();
         String eventType = event.getType().name();
         try {
-            EmailContext emailContext = contextConfigurator.apply(record.value());
             String eventKey = "event:" + event.getId();
 
             // Проверяем, не обрабатывали ли мы уже это событие
@@ -97,27 +88,25 @@ public class ConsumerKafkaListeners {
                 log.info("Обработка события {} для пользователя: {}, partition: {}, offset: {}",
                         eventType, event.getEmail(), record.partition(), record.offset());
 
+                EmailContext emailContext = contextConfigurator.apply(record.value());
+
                 // Запускаем отправку асинхронно и не блокируем текущий поток
-                emailService.sendEmail(emailContext)
-                        .exceptionally(ex -> {
-                            log.error("Не удалось отправить письмо для события {} на адрес {}: {}",
-                                    eventType, event.getEmail(), ex.getMessage());
-                            return null;
-                        });
+                emailService.sendEmail(emailContext).exceptionally(ex -> {
+                    log.error("Ошибка отправки события {} для пользователя {}: {}", eventType, event.getEmail(), ex.getMessage());
+                    return null;
+                });
 
                 log.debug("Событие {} обработано и запущена асинхронная отправка для: {}",
                         eventType, event.getEmail());
-                successCount.incrementAndGet();
             } else {
                 log.warn("Событие {} с ID {} уже было обработано", eventType, event.getId());
             }
 
         } catch (RedisConnectionFailureException e){
-            log.error("Redis недоступен, пропускаем обработку");
-            throw e; // Retry позже
+            log.error("Redis недоступен");
+            throw e;
         }
         catch (Exception e) {
-            errorCount.incrementAndGet();
             log.error("Ошибка обработки события {}: {}", eventType, e.getMessage(), e);
         }
 

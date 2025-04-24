@@ -1,6 +1,7 @@
 package ru.zeker.notificationservice.config;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -8,9 +9,14 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.listener.CommonErrorHandler;
+import org.springframework.kafka.listener.DeadLetterPublishingRecoverer;
 import org.springframework.kafka.listener.DefaultErrorHandler;
+import org.springframework.kafka.support.ExponentialBackOffWithMaxRetries;
+import org.springframework.kafka.support.serializer.DeserializationException;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
-import org.springframework.util.backoff.FixedBackOff;
+import org.springframework.messaging.converter.MessageConversionException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -21,6 +27,19 @@ public class KafkaConsumerConfig {
     @Value("${spring.kafka.bootstrap-servers}")
     private String bootstrapServers;
 
+    @Value("${spring.kafka.consumer.retry.initial-interval:1000}")
+    private long initialInterval;
+
+    @Value("${spring.kafka.consumer.retry.max-interval:10000}")
+    private long maxInterval;
+
+    @Value("${spring.kafka.consumer.retry.multiplier:2.0}")
+    private double multiplier;
+
+    @Value("${spring.kafka.consumer.retry.max-attempts:5}")
+    private int maxAttempts;
+
+    @Bean
     public Map<String, Object> consumerConfig() {
         Map<String, Object> props = new HashMap<>();
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
@@ -35,20 +54,36 @@ public class KafkaConsumerConfig {
     }
 
     @Bean
-    public ConsumerFactory<String, Object> consumerFactory() {
-        return new DefaultKafkaConsumerFactory<>(consumerConfig());
+    public ConsumerFactory<String, Object> consumerFactory(Map<String, Object> consumerConfig) {
+        return new DefaultKafkaConsumerFactory<>(consumerConfig);
     }
 
     @Bean
-    public ConcurrentKafkaListenerContainerFactory<String, Object> batchEmailKafkaListenerContainerFactory() {
+    public ConcurrentKafkaListenerContainerFactory<String, Object> batchEmailKafkaListenerContainerFactory(CommonErrorHandler errorHandler) {
         ConcurrentKafkaListenerContainerFactory<String, Object> factory =
                 new ConcurrentKafkaListenerContainerFactory<>();
-        factory.setConsumerFactory(consumerFactory());
+        factory.setConsumerFactory(consumerFactory(consumerConfig()));
         factory.setBatchListener(true);
         factory.setConcurrency(16);
-        factory.setCommonErrorHandler(new DefaultErrorHandler(
-                new FixedBackOff(2000L, 3)
-        ));
+        factory.setCommonErrorHandler(errorHandler);
         return factory;
     }
+
+    @Bean
+    public CommonErrorHandler errorHandler(KafkaTemplate<String, Object> kafkaTemplate) {
+        ExponentialBackOffWithMaxRetries backOff = new ExponentialBackOffWithMaxRetries(maxAttempts);
+        backOff.setInitialInterval(initialInterval);
+        backOff.setMultiplier(multiplier);
+        backOff.setMaxInterval(maxInterval);
+
+        DefaultErrorHandler errorHandler = new DefaultErrorHandler(backOff);
+
+        errorHandler.addNotRetryableExceptions(
+                DeserializationException.class,
+                MessageConversionException.class
+        );
+
+        return errorHandler;
+    }
+
 }
