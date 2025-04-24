@@ -29,7 +29,7 @@ public class DataInitializer implements CommandLineRunner {
     private final PasswordEncoder passwordEncoder;
     private final PasswordHistoryService passwordHistoryService;
 
-    @Value("${admin.username}")
+    @Value("${app.admin.username}")
     private String adminName;
 
     /**

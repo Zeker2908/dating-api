@@ -8,23 +8,15 @@ import org.springframework.kafka.config.TopicBuilder;
 @Configuration
 public class KafkaTopicConfig {
 
+    //TODO: объединить топики в один и создать топик с результатом
     @Bean
-    public NewTopic userRegisterTopic() {
+    public NewTopic emailNotificationTopic() {
         return TopicBuilder
-                .name("user-registered-events")
+                .name("email-notification-events")
                 .partitions(32)
                 .replicas(1)
                 .config("retention.ms", "604800000")
                 .build();
     }
 
-    @Bean
-    public NewTopic forgotPasswordTopic() {
-        return TopicBuilder
-                .name("forgot-password-events")
-                .partitions(32)
-                .replicas(1)
-                .config("retention.ms", "604800000")
-                .build();
-    }
 }

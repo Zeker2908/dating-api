@@ -3,6 +3,8 @@ package ru.zeker.notificationservice.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.RedisConnectionFailureException;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
@@ -14,6 +16,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
+//TODO: Добавить Retry конфигурацию
 /**
  * Сервис для прослушивания и обработки событий Kafka
  * Обрабатывает события, связанные с регистрацией пользователей и отправкой уведомлений
@@ -24,139 +27,101 @@ import java.util.function.Function;
 public class ConsumerKafkaListeners {
     private final EmailService emailService;
     private final RedisTemplate<String, String> redisTemplate;
-    
-    // Константа для времени хранения ключей в Redis
-    private static final Duration EVENT_EXPIRATION_TIME = Duration.ofMinutes(15);
+
+    @Value("${app.redis.duration}")
+    private int redisDuration;
+
 
     /**
-     * Слушатель событий регистрации пользователей
-     * Обрабатывает пакеты сообщений из топика 'user-registered-events'
+     * Слушатель событий отправки email для пользователей.
+     * Обрабатывает пакеты сообщений из топика 'email-notification-events'
      *
-     * @param records список записей с событиями регистрации пользователей
+     * @param records список записей с событиями отправки email для пользователей
      */
     @KafkaListener(
-            topics = "user-registered-events", 
-            groupId = "notification-service"
+            topics = "email-notification-events",
+            groupId = "notification-service",
+            containerFactory = "batchEmailKafkaListenerContainerFactory"
     )
     void listenRegisteredEvents(
             List<ConsumerRecord<String, EmailEvent>> records
     ) {
-        processEvents(records, emailService::configureEmailVerificationContext, "регистрации");
-    }
-
-    /**
-     * Слушатель событий восстановления пароля
-     * Обрабатывает пакеты сообщений из топика 'forgot-password-events'
-     *
-     * @param records список записей с событиями восстановления пароля
-     */
-    @KafkaListener(
-            topics = "forgot-password-events",
-            groupId = "notification-service"
-    )
-    void listenForgotPasswordEvents(List<ConsumerRecord<String, EmailEvent>> records) {
-        processEvents(records, emailService::configureForgotPasswordContext, "восстановления пароля");
-    }
-
-    /**
-     * Обрабатывает список событий определенного типа
-     *
-     * @param records список записей Kafka
-     * @param contextConfigurator функция для создания контекста email в зависимости от типа события
-     * @param eventType тип события для логирования
-     */
-    private void processEvents(
-            List<ConsumerRecord<String, EmailEvent>> records,
-            Function<EmailEvent, EmailContext> contextConfigurator,
-            String eventType
-    ) {
         int totalRecords = records.size();
-        log.info("Получен пакет из {} сообщений типа '{}'", totalRecords, eventType);
-
+        log.info("Получен пакет из {} сообщений", totalRecords);
         AtomicInteger successCount = new AtomicInteger(0);
         AtomicInteger errorCount = new AtomicInteger(0);
 
         records.forEach(record -> {
-            try {
-                EmailContext emailContext = contextConfigurator.apply(record.value());
-                processEmailEvent(record, emailContext, successCount, errorCount, eventType);
-            } catch (Exception e) {
-                errorCount.incrementAndGet();
-                log.error("Ошибка при создании контекста для события {}: {}", eventType, e.getMessage(), e);
+            switch (record.value().getType()){
+                case EMAIL_VERIFICATION:
+                    log.info("Получено событие подтверждения email: {}", record.value());
+                    processEmailEvent(record, emailService::configureEmailVerificationContext, successCount, errorCount);
+                    break;
+                case FORGOT_PASSWORD:
+                    log.info("Получено событие восстановления пароля: {}", record.value());
+                    processEmailEvent(record, emailService::configureForgotPasswordContext, successCount, errorCount);
+                    break;
+                default:
+                    log.error("Получено неизвестное событие: {}", record.value());
+                    throw new IllegalArgumentException("Неизвестный тип события EmailEvent.Type: " + record.value().getType());
             }
         });
 
-        log.info("Обработка пакета событий '{}' завершена. Успешно: {}, Ошибок: {}",
-                eventType, successCount.get(), errorCount.get());
+        log.info("Обработка пакета событий завершена. Успешно: {}, Ошибок: {}",
+                 successCount.get(), errorCount.get());
     }
+
 
     /**
      * Обрабатывает отдельное событие отправки email
      *
      * @param record запись из Kafka
-     * @param emailContext контекст для отправки email
+     * @param contextConfigurator функция для создания контекста для отправки email
      * @param successCount счетчик успешных операций
      * @param errorCount счетчик ошибок
-     * @param eventType тип события для логирования
      */
     private void processEmailEvent(
             ConsumerRecord<String, EmailEvent> record, 
-            EmailContext emailContext, 
+            Function<EmailEvent, EmailContext> contextConfigurator,
             AtomicInteger successCount, 
-            AtomicInteger errorCount,
-            String eventType
+            AtomicInteger errorCount
     ) {
+
         EmailEvent event = record.value();
-        String eventKey = "event:" + event.getId();
-        
+        String eventType = event.getType().name();
         try {
+            EmailContext emailContext = contextConfigurator.apply(record.value());
+            String eventKey = "event:" + event.getId();
+
             // Проверяем, не обрабатывали ли мы уже это событие
-            if (Boolean.TRUE.equals(redisTemplate.opsForValue().setIfAbsent(eventKey, "processed", EVENT_EXPIRATION_TIME))) {
+            if (Boolean.TRUE.equals(redisTemplate.opsForValue().setIfAbsent(eventKey, "processed", Duration.ofMinutes(redisDuration)))) {
                 log.info("Обработка события {} для пользователя: {}, partition: {}, offset: {}",
                         eventType, event.getEmail(), record.partition(), record.offset());
 
-                // Проверка данных события
-                validateEvent(event);
-
                 // Запускаем отправку асинхронно и не блокируем текущий поток
                 emailService.sendEmail(emailContext)
-                    .exceptionally(ex -> {
-                        log.error("Не удалось отправить письмо для события {} на адрес {}: {}",
-                                eventType, event.getEmail(), ex.getMessage());
-                        return null;
-                    });
+                        .exceptionally(ex -> {
+                            log.error("Не удалось отправить письмо для события {} на адрес {}: {}",
+                                    eventType, event.getEmail(), ex.getMessage());
+                            return null;
+                        });
 
-                log.debug("Событие {} обработано и запущена асинхронная отправка для: {}", 
+                log.debug("Событие {} обработано и запущена асинхронная отправка для: {}",
                         eventType, event.getEmail());
                 successCount.incrementAndGet();
             } else {
                 log.warn("Событие {} с ID {} уже было обработано", eventType, event.getId());
             }
-        } catch (Exception e) {
+
+        } catch (RedisConnectionFailureException e){
+            log.error("Redis недоступен, пропускаем обработку");
+            throw e; // Retry позже
+        }
+        catch (Exception e) {
             errorCount.incrementAndGet();
             log.error("Ошибка обработки события {}: {}", eventType, e.getMessage(), e);
         }
+
     }
-    
-    /**
-     * Проверяет корректность данных в событии
-     *
-     * @param event событие для отправки email
-     * @throws IllegalArgumentException если данные события некорректны
-     */
-    private void validateEvent(EmailEvent event) {
-        if (event == null) {
-            throw new IllegalArgumentException("Событие не может быть null");
-        }
-        
-        if (event.getEmail() == null || event.getEmail().isBlank()) {
-            throw new IllegalArgumentException("Email пользователя не указан");
-        }
-        
-        if (event.getToken() == null || event.getToken().isBlank()) {
-            throw new IllegalArgumentException("Токен не указан");
-        }
-        
-        log.debug("Данные события прошли валидацию: {}", event.getEmail());
-    }
+
 }

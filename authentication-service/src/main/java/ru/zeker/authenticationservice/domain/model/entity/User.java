@@ -49,7 +49,7 @@ public class User extends BaseEntity implements UserDetails {
     @Column(nullable = false)
     private Boolean locked;
 
-    @OneToMany(mappedBy = "user", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    @OneToMany(mappedBy = "user", cascade = CascadeType.REMOVE)
     private List<PasswordHistory> passwordHistory;
 
     @Override

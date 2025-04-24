@@ -2,6 +2,7 @@ package ru.zeker.authenticationservice.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -20,6 +21,7 @@ import ru.zeker.authenticationservice.domain.model.enums.Role;
 import ru.zeker.authenticationservice.domain.model.entity.User;
 import ru.zeker.authenticationservice.exception.InvalidTokenException;
 import ru.zeker.authenticationservice.exception.UserAlreadyEnableException;
+import ru.zeker.common.dto.EmailEventType;
 
 import java.time.Duration;
 import java.util.UUID;
@@ -39,6 +41,9 @@ public class AuthenticationService {
     private final KafkaProducer kafkaProducer;
     private final PasswordHistoryService passwordHistoryService;
     private final RedisTemplate<String, String> redisTemplate;
+
+    @Value("${app.redis.duration}")
+    private int redisDuration;
 
     /**
      * Регистрация нового пользователя и отправка сообщения для верификации email
@@ -63,13 +68,14 @@ public class AuthenticationService {
         
         String token = jwtService.generateToken(user);
         EmailEvent userRegisteredEvent = EmailEvent.builder()
+                .type(EmailEventType.EMAIL_VERIFICATION)
                 .id(UUID.randomUUID().toString())
                 .email(user.getEmail())
                 .token(token)
                 .firstName(user.getFirstName())
                 .build();
                 
-        kafkaProducer.sendEmailVerification(userRegisteredEvent);
+        kafkaProducer.sendEmailEvent(userRegisteredEvent);
         log.info("Отправлено сообщение для верификации email: {}", user.getEmail());
     }
 
@@ -172,13 +178,14 @@ public class AuthenticationService {
         String token = jwtService.generateOnceVerificationToken(user);
         
         EmailEvent event = EmailEvent.builder()
+                .type(EmailEventType.FORGOT_PASSWORD)
                 .id(UUID.randomUUID().toString())
                 .email(user.getEmail())
                 .token(token)
                 .firstName(user.getFirstName())
                 .build();
 
-        kafkaProducer.sendForgotPassword(event);
+        kafkaProducer.sendEmailEvent(event);
         log.info("Письмо с инструкцией для восстановления пароля отправлено на email: {}", user.getEmail());
     }
 
@@ -192,7 +199,7 @@ public class AuthenticationService {
     public void resetPassword(ResetPasswordRequest request, String token) {
         log.info("Запрос на сброс пароля");
 
-        if(Boolean.FALSE.equals(redisTemplate.opsForValue().setIfAbsent(jwtService.extractNonce(token), "proccesed", Duration.ofMinutes(15)))){
+        if(Boolean.FALSE.equals(redisTemplate.opsForValue().setIfAbsent(jwtService.extractNonce(token), "proccesed", Duration.ofMinutes(redisDuration)))){
             log.warn("Токен уже был обработан");
             throw new InvalidTokenException();
         }

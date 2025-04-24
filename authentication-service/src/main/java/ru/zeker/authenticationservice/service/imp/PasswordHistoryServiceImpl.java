@@ -34,9 +34,13 @@ public class PasswordHistoryServiceImpl implements PasswordHistoryService {
     public void savePassword(User user, String rawPassword) {
         // Проверка на повторное использование пароля
         Set<PasswordHistory> existingPasswords = findAllByUserId(user.getId());
-        boolean isPasswordReused = existingPasswords.stream()
-                .anyMatch(history -> passwordEncoder.matches(rawPassword, history.getPassword()));
-        
+        boolean isPasswordReused = false;
+
+        if(!existingPasswords.isEmpty()){
+            isPasswordReused = existingPasswords.stream()
+                    .anyMatch(history -> passwordEncoder.matches(rawPassword, history.getPassword()));
+
+        }
         if (isPasswordReused) {
             throw new IllegalArgumentException("Пароль уже использовался ранее. Пожалуйста, выберите другой пароль.");
         }

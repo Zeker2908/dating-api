@@ -1,3 +1,5 @@
+server:
+  port: 8081
 spring:
   application:
     name: authentication-service
@@ -5,13 +7,42 @@ spring:
     config:
       uri: http://localhost:8888
       fail-fast: true
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${CLIENT_ID}
+            client-secret: ${CLIENT_SECRET}
+            redirect-uri: ${app.domain}/login/oauth2/code/{registrationId}
+            scope:
+              - email
+              - profile
+              - openid
+  kafka:
+    bootstrap-servers: localhost:9092
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      database: 0
+  datasource:
+    url: jdbc:postgresql://localhost:5432/users
+    driver-class-name: org.postgresql.Driver
+    username: admin
+    password: admin
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        format_sql: true
+    database: postgresql
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    show-sql: false
 logging:
   level:
     root: INFO
     org.springframework.security: DEBUG
     eureka: INFO
     ru.zeker: DEBUG
-app:
-  security:
-    password-history:
-      max-count: 5

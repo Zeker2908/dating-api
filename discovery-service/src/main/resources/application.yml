@@ -10,7 +10,7 @@ eureka:
     response-cache-update-interval-ms: 2000
     eviction-interval-timer-in-ms: 5000
   instance:
-    hostname: localhost
+    hostname: eureka-server
   client:
     register-with-eureka: false
     fetch-registry: false

@@ -1,4 +1,32 @@
 services:
+  eureka-server:
+    build:
+      context: ./discovery-service
+      dockerfile: Dockerfile
+    container_name: eureka-server
+    ports:
+      - "8761:8761"
+    networks:
+      - microservices-net
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8761/actuator/health" ]
+      interval: 5s
+      timeout: 10s
+      retries: 3
+
+  config-server:
+    build:
+      context: ./config-server
+      dockerfile: Dockerfile
+    container_name: config-server
+    environment:
+      CONFIG_REPO_URI: ${CONFIG_REPO_URI}
+      CONFIG_REPO_USER: ${CONFIG_REPO_USER}
+      GITHUB_PASSWORD: ${GITHUB_PASSWORD}
+    ports:
+      - "8888:8888"
+    networks:
+      - microservices-net
   postgres_user:
     image: postgres:15
     container_name: postgres_user
@@ -10,13 +38,6 @@ services:
       - "5432:5432"
     volumes:
       - pgdata_users:/var/lib/postgresql/data
-
-#  mongodb:
-#    image: mongo:6
-#    ports:
-#      - "27017:27017"
-#    volumes:
-#      - mongodb_data:/data/db
 
   redis-users:
     image: redis:7
@@ -67,3 +88,7 @@ volumes:
   redisdata_user:
   redisdata_notification:
   kafka_data:
+
+networks:
+  microservices-net:
+    driver: bridge

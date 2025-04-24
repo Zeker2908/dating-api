@@ -4,6 +4,7 @@ import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.eclipse.angus.mail.smtp.SMTPSenderFailedException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
@@ -38,7 +39,7 @@ public class EmailService {
     @Value("${spring.mail.username}")
     private String from;
 
-    @Value("${spring.application.url}")
+    @Value("${app.domain}")
     private String applicationUrl;
 
     @Value("${app.links.email-verification}")
@@ -91,11 +92,16 @@ public class EmailService {
             log.info("Письмо успешно отправлено на адрес: {}", emailContext.getTo());
             return CompletableFuture.completedFuture(null);
             
+        }catch (SMTPSenderFailedException e) {
+            log.error("Ошибка при отправке письма на {}: {}",
+                    emailContext.getTo(), e.getMessage(), e);
+            throw new EmailSendingException("Ошибка при отправке письма: " + e.getMessage());
         } catch (MessagingException e) {
-            log.error("Ошибка при подготовке письма для {}: {}", 
+            log.error("Ошибка при подготовке письма для {}: {}",
                     emailContext.getTo(), e.getMessage(), e);
             throw new EmailSendingException("Ошибка при подготовке письма: " + e.getMessage());
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             log.error("Неожиданная ошибка при отправке письма на {}: {}", 
                     emailContext.getTo(), e.getMessage(), e);
             throw new EmailSendingException("Ошибка при отправке письма: " + e.getMessage());

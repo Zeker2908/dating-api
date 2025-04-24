@@ -1,6 +1,7 @@
 package ru.zeker.authenticationservice.controller;
 
 import io.jsonwebtoken.security.SignatureException;
+import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.http.HttpStatus;
@@ -97,6 +98,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(LockedException.class)
     public ResponseEntity<Map<String, Object>> handleLockedException(LockedException ex) {
         return buildErrorResponse(HttpStatus.FORBIDDEN, "Аккаунт пользователя заблокирован");
+    }
+
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<Map<String, Object>> handleConstraintViolationException(ConstraintViolationException ex) {
+        return buildErrorResponse(HttpStatus.BAD_REQUEST, ex.getMessage());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
