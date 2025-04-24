@@ -72,10 +72,10 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_DEFAULT_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
 
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
 
-      KAFKA_NUM_PARTITIONS: 1  # Дефолтное количество партиций для новых топиков
       KAFKA_LOG_RETENTION_MS: -1  # Отключаем удаление логов (для тестов)
     ports:
       - "9092:9092"

@@ -8,7 +8,6 @@ import org.springframework.kafka.config.TopicBuilder;
 @Configuration
 public class KafkaTopicConfig {
 
-    //TODO: объединить топики в один и создать топик с результатом
     @Bean
     public NewTopic emailNotificationTopic() {
         return TopicBuilder

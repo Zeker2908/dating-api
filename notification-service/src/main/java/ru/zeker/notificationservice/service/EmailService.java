@@ -8,11 +8,13 @@ import org.eclipse.angus.mail.smtp.SMTPSenderFailedException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Retryable;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.thymeleaf.context.Context;
 import org.thymeleaf.spring6.SpringTemplateEngine;
-import ru.zeker.common.dto.EmailEvent;
+import ru.zeker.common.dto.kafka.EmailEvent;
 import ru.zeker.notificationservice.dto.EmailContext;
 import ru.zeker.notificationservice.exception.EmailSendingException;
 
@@ -55,6 +57,11 @@ public class EmailService {
      * @return CompletableFuture, который завершается после отправки письма
      * @throws EmailSendingException если отправка не удалась
      */
+    @Retryable(
+            retryFor = {EmailSendingException.class},
+            maxAttempts = 3,
+            backoff = @Backoff(delay = 2000, multiplier = 2)
+    )
     @Async("emailSendingExecutor")
     public CompletableFuture<Void> sendEmail(EmailContext emailContext) {
         log.info("Подготовка к отправке письма на адрес: {}", emailContext.getTo());

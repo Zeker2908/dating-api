@@ -29,6 +29,7 @@ public class KafkaProducerConfig {
         props.put(ProducerConfig.ACKS_CONFIG, "all");
         props.put(ProducerConfig.LINGER_MS_CONFIG, 10);
         props.put(ProducerConfig.BATCH_SIZE_CONFIG, 32_768);
+        props.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, false);
         return props;
     }
 

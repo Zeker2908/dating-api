@@ -1,4 +1,4 @@
-package ru.zeker.common.dto;
+package ru.zeker.common.dto.kafka;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;

@@ -14,14 +14,14 @@ import ru.zeker.authenticationservice.domain.dto.request.ForgotPasswordRequest;
 import ru.zeker.authenticationservice.domain.dto.request.LoginRequest;
 import ru.zeker.authenticationservice.domain.dto.request.RegisterRequest;
 import ru.zeker.authenticationservice.domain.dto.request.ResetPasswordRequest;
-import ru.zeker.common.dto.EmailEvent;
+import ru.zeker.common.dto.kafka.EmailEvent;
 import ru.zeker.authenticationservice.domain.dto.*;
 import ru.zeker.authenticationservice.domain.model.entity.RefreshToken;
 import ru.zeker.authenticationservice.domain.model.enums.Role;
 import ru.zeker.authenticationservice.domain.model.entity.User;
 import ru.zeker.authenticationservice.exception.InvalidTokenException;
 import ru.zeker.authenticationservice.exception.UserAlreadyEnableException;
-import ru.zeker.common.dto.EmailEventType;
+import ru.zeker.common.dto.kafka.EmailEventType;
 
 import java.time.Duration;
 import java.util.UUID;

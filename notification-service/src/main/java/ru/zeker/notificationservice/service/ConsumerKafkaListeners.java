@@ -8,7 +8,7 @@ import org.springframework.data.redis.RedisConnectionFailureException;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
-import ru.zeker.common.dto.EmailEvent;
+import ru.zeker.common.dto.kafka.EmailEvent;
 import ru.zeker.notificationservice.dto.EmailContext;
 
 import java.time.Duration;
@@ -16,9 +16,8 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
-//TODO: Добавить Retry конфигурацию
 /**
- * Сервис для прослушивания и обработки событий Kafka
+ * Сервис для прослушивания и обработки событий Kafka.
  * Обрабатывает события, связанные с регистрацией пользователей и отправкой уведомлений
  */
 @Slf4j
@@ -63,7 +62,7 @@ public class ConsumerKafkaListeners {
                     break;
                 default:
                     log.error("Получено неизвестное событие: {}", record.value());
-                    throw new IllegalArgumentException("Неизвестный тип события EmailEvent.Type: " + record.value().getType());
+                    break;
             }
         });
 

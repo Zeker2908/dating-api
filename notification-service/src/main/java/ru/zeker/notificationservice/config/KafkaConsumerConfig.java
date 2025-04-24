@@ -8,7 +8,9 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
+import org.springframework.kafka.listener.DefaultErrorHandler;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
+import org.springframework.util.backoff.FixedBackOff;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -28,6 +30,7 @@ public class KafkaConsumerConfig {
         props.put(JsonDeserializer.TRUSTED_PACKAGES, "*");
         props.put(JsonDeserializer.USE_TYPE_INFO_HEADERS, true);
         props.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, 1000);
+        props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
         return props;
     }
 
@@ -43,6 +46,9 @@ public class KafkaConsumerConfig {
         factory.setConsumerFactory(consumerFactory());
         factory.setBatchListener(true);
         factory.setConcurrency(16);
+        factory.setCommonErrorHandler(new DefaultErrorHandler(
+                new FixedBackOff(2000L, 3)
+        ));
         return factory;
     }
 }

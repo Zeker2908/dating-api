@@ -55,12 +55,12 @@ public class PasswordHistoryServiceImpl implements PasswordHistoryService {
         
         // Ограничение количества хранимых паролей
         if (existingPasswords.size() >= maxPasswordHistoryCount) {
-            removeOldestPasswords(user.getId(), existingPasswords.size() - maxPasswordHistoryCount + 1);
+            removeOldestPasswords(existingPasswords, existingPasswords.size() - maxPasswordHistoryCount + 1);
         }
     }
 
-    private void removeOldestPasswords(UUID userId, int countToRemove) {
-        Set<PasswordHistory> passwordsToRemove = findAllByUserId(userId).stream()
+    private void removeOldestPasswords(Set<PasswordHistory> passwordHistories, int countToRemove) {
+        Set<PasswordHistory> passwordsToRemove = passwordHistories.stream()
                 .sorted(Comparator.comparing(PasswordHistory::getCreatedAt))
                 .limit(countToRemove)
                 .collect(Collectors.toSet());
