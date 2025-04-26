@@ -3,6 +3,7 @@ package ru.zeker.authenticationservice.domain.model.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import ru.zeker.common.model.BaseEntity;
 
 @EqualsAndHashCode(callSuper = true)
 @Data

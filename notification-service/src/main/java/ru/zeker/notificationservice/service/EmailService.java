@@ -32,23 +32,11 @@ import java.util.concurrent.CompletableFuture;
 public class EmailService {
     private final JavaMailSender javaMailSender;
     private final SpringTemplateEngine springTemplateEngine;
-    
-    // Константы для шаблонов
-    private static final String EMAIL_VERIFICATION_TEMPLATE = "email/emailVerification.html";
-    private static final String FORGOT_PASSWORD_TEMPLATE = "email/forgotPassword.html";
+
     private static final String SENDER_DISPLAY_NAME = "Dating API";
 
     @Value("${spring.mail.username}")
     private String from;
-
-    @Value("${app.domain}")
-    private String applicationUrl;
-
-    @Value("${app.links.email-verification}")
-    private String emailVerificationUrl;
-
-    @Value("${app.links.password-reset}")
-    private String passwordResetUrl;
 
     /**
      * Асинхронно отправляет электронное письмо на основе данных контекста
@@ -114,48 +102,6 @@ public class EmailService {
             throw new EmailSendingException("Ошибка при отправке письма: " + e.getMessage());
         }
     }
-
-    /**
-     * Создает контекст для отправки письма с подтверждением регистрации
-     *
-     * @param userRegisteredEvent событие регистрации пользователя
-     * @return настроенный контекст для отправки письма
-     */
-    public EmailContext configureEmailVerificationContext(EmailEvent userRegisteredEvent) {
-        log.debug("Настройка контекста письма для подтверждения регистрации: {}", 
-                userRegisteredEvent.getEmail());
-        
-        // Формирование URL для подтверждения
-        String verificationUrl = buildVerificationUrl(userRegisteredEvent.getToken());
-        
-        return createEmailContext(
-                userRegisteredEvent,
-                "Подтверждение регистрации в Dating API",
-                EMAIL_VERIFICATION_TEMPLATE,
-                verificationUrl
-        );
-    }
-
-    /**
-     * Создает контекст для отправки письма с восстановлением пароля
-     *
-     * @param forgotPasswordEvent событие восстановления пароля
-     * @return настроенный контекст для отправки письма
-     */
-    public EmailContext configureForgotPasswordContext(EmailEvent forgotPasswordEvent) {
-        log.debug("Настройка контекста письма для восстановления пароля: {}",
-                forgotPasswordEvent.getEmail());
-
-        // Формирование URL для восстановления пароля
-        String resetPasswordUrl = buildResetPasswordUrl(forgotPasswordEvent.getToken());
-
-        return createEmailContext(
-                forgotPasswordEvent,
-                "Восстановление пароля в Dating API",
-                FORGOT_PASSWORD_TEMPLATE,
-                resetPasswordUrl
-        );
-    }
     
     /**
      * Общий метод для создания контекста email на основе события
@@ -166,7 +112,7 @@ public class EmailService {
      * @param actionUrl URL для действия (подтверждение регистрации, сброс пароля и т.д.)
      * @return настроенный контекст для отправки письма
      */
-    private EmailContext createEmailContext(
+    public EmailContext createEmailContext(
             EmailEvent event,
             String subject,
             String templateLocation,
@@ -188,25 +134,5 @@ public class EmailService {
                 .templateLocation(templateLocation)
                 .templateContext(templateContext)
                 .build();
-    }
-    
-    /**
-     * Создает URL для подтверждения email пользователя
-     *
-     * @param token токен подтверждения
-     * @return полный URL для подтверждения
-     */
-    private String buildVerificationUrl(String token) {
-        return applicationUrl + emailVerificationUrl + "?token=" + token;
-    }
-    
-    /**
-     * Создает URL для восстановления пароля пользователя
-     *
-     * @param token токен восстановления пароля
-     * @return полный URL для восстановления пароля
-     */
-    private String buildResetPasswordUrl(String token) {
-        return applicationUrl + passwordResetUrl + "?token=" + token;
     }
 }

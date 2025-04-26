@@ -49,54 +49,45 @@ public class JwtService {
         return extractClaim(token, claims -> claims.get("nonce", String.class));
     }
 
-    public String generateToken(UserDetails userDetails){
+    public String generateAccessToken(UserDetails userDetails){
         Map<String, Object> claims = new HashMap<>();
         if(userDetails instanceof User customUserDetails){
             claims.put("id", customUserDetails.getId());
             claims.put("role", customUserDetails.getRole());
             claims.put("enabled", customUserDetails.isEnabled());
         }
-        return generateToken(claims, userDetails);
+        return generateToken(userDetails,claims,jwtProperties.getAccess().getExpiration());
     }
 
     public String generateRefreshToken(UserDetails userDetails){
         Map<String,Object> claims = new HashMap<>();
-        long currentTimeMillis = System.currentTimeMillis();
         if(userDetails instanceof User customUserDetails){
             claims.put("id", customUserDetails.getId());
         }
-        return Jwts.builder()
-                .setClaims(claims)
-                .setSubject(userDetails.getUsername())
-                .setIssuedAt(new Date(currentTimeMillis))
-                .setExpiration(new Date(currentTimeMillis + jwtProperties.getRefresh().getExpiration()))
-                .signWith(signingKey,SignatureAlgorithm.HS256)
-                .compact();
+        return generateToken(userDetails,claims,jwtProperties.getRefresh().getExpiration());
     }
 
     public String generateOnceVerificationToken(UserDetails userDetails){
         Map<String,Object> claims = new HashMap<>();
-        long currentTimeMillis = System.currentTimeMillis();
         if(userDetails instanceof User customUserDetails){
             claims.put("id", customUserDetails.getId());
             claims.put("nonce", UUID.randomUUID().toString());
         }
+        return generateToken(userDetails,claims,jwtProperties.getAccess().getExpiration());
+    }
+
+    private String generateToken(UserDetails userDetails, Map<String, Object> claims, long expiration) {
+        long currentTimeMillis = System.currentTimeMillis();
+
         return Jwts.builder()
                 .setClaims(claims)
                 .setSubject(userDetails.getUsername())
                 .setIssuedAt(new Date(currentTimeMillis))
-                .setExpiration(new Date(currentTimeMillis+jwtProperties.getAccess().getExpiration()))
+                .setExpiration(new Date(currentTimeMillis+expiration))
                 .signWith(signingKey,SignatureAlgorithm.HS256)
                 .compact();
     }
 
-    private String generateToken(Map<String, Object> extraClaims, UserDetails userDetails) {
-        long currentTimeMillis = System.currentTimeMillis();
-        return Jwts.builder().setClaims(extraClaims).setSubject(userDetails.getUsername())
-                .setIssuedAt(new Date(currentTimeMillis))
-                .setExpiration(new Date(currentTimeMillis + jwtProperties.getAccess().getExpiration()))
-                .signWith(signingKey, SignatureAlgorithm.HS256).compact();
-    }
 
     public boolean isTokenValid(String token, UserDetails userDetails) {
         return userDetails.getUsername().equals(extractUsername(token)) && !isTokenExpired(token);

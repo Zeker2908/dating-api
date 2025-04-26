@@ -25,13 +25,9 @@ public class UserController {
     }
 
     @PatchMapping("/me/password")
-    public ResponseEntity<Map<String,String>> changePassword(@RequestBody @Valid ChangerPasswordRequest changerPasswordRequest) {
+    public ResponseEntity<Void> changePassword(@RequestBody @Valid ChangerPasswordRequest changerPasswordRequest) {
         userService.changePassword(changerPasswordRequest.getOldPassword(), changerPasswordRequest.getNewPassword());
 
-        Map<String,String> map = new HashMap<>();
-        map.put("message", "Пароль успешно изменен");
-        map.put("status", "success");
-
-        return ResponseEntity.ok(map);
+        return ResponseEntity.noContent().build();
     }
 }

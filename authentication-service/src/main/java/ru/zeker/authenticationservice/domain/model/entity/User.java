@@ -7,11 +7,10 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import ru.zeker.authenticationservice.domain.model.enums.OAuth2Provider;
 import ru.zeker.authenticationservice.domain.model.enums.Role;
+import ru.zeker.common.model.BaseEntity;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.Set;
-import java.util.UUID;
 
 @EqualsAndHashCode(callSuper = true)
 @Data

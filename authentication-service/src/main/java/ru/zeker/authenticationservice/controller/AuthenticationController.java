@@ -20,8 +20,6 @@ import ru.zeker.authenticationservice.service.AuthenticationService;
 import ru.zeker.authenticationservice.service.RefreshTokenService;
 
 import java.time.Duration;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * Контроллер для управления аутентификацией пользователей
@@ -41,16 +39,11 @@ public class AuthenticationController {
      * @return сообщение о статусе операции
      */
     @PostMapping("/register")
-    @ResponseStatus(HttpStatus.CREATED)
-    public ResponseEntity<Map<String, String>> registerWithKafka(@RequestBody @Valid RegisterRequest request) {
+    public ResponseEntity<Void> registerWithKafka(@RequestBody @Valid RegisterRequest request) {
         log.info("Запрос на регистрацию пользователя: {}", request.getEmail());
         authenticationService.register(request);
 
-        Map<String, String> response = new HashMap<>();
-        response.put("message", "Письмо с подтверждением отправлено на ваш email");
-        response.put("status", "success");
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
     /**
@@ -78,15 +71,11 @@ public class AuthenticationController {
      * @return сообщение о статусе операции
      */
     @PostMapping("/email-confirmation")
-    public ResponseEntity<Map<String, String>> confirmEmail(@RequestParam @NotNull String token) {
+    public ResponseEntity<Void> confirmEmail(@RequestParam @NotNull String token) {
         log.info("Запрос на подтверждение email");
         authenticationService.confirmEmail(token);
 
-        Map<String, String> response = new HashMap<>();
-        response.put("message", "Email успешно подтвержден");
-        response.put("status", "success");
-
-        return ResponseEntity.ok(response);
+        return ResponseEntity.noContent().build();
     }
 
     /**
@@ -96,15 +85,11 @@ public class AuthenticationController {
      * @return сообщение о статусе операции
      */
     @PostMapping("/password-reset/request")
-    public ResponseEntity<Map<String, String>> forgotPassword(@RequestBody @Valid ForgotPasswordRequest request) {
+    public ResponseEntity<Void> forgotPassword(@RequestBody @Valid ForgotPasswordRequest request) {
         log.info("Запрос на восстановление пароля: {}", request.getEmail());
         authenticationService.forgotPassword(request);
 
-        Map<String, String> response = new HashMap<>();
-        response.put("message", "Инструкции по восстановлению пароля отправлены на ваш email");
-        response.put("status", "success");
-
-        return ResponseEntity.ok(response);
+        return ResponseEntity.noContent().build();
     }
 
     /**
@@ -115,16 +100,13 @@ public class AuthenticationController {
      * @return сообщение о статусе операции
      */
     @PostMapping("/password-reset")
-    public ResponseEntity<Map<String, String>> resetPassword(@RequestParam @NotNull String token,
+    public ResponseEntity<Void> resetPassword(@RequestParam @NotNull String token,
                                                              @RequestBody @Valid ResetPasswordRequest request) {
         log.info("Запрос на сброс пароля");
         authenticationService.resetPassword(request, token);
 
-        Map<String, String> response = new HashMap<>();
-        response.put("message", "Пароль успешно восстановлен");
-        response.put("status", "success");
 
-        return ResponseEntity.ok(response);
+        return ResponseEntity.noContent().build();
     }
 
     /**

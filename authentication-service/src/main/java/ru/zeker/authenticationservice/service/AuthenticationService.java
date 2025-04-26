@@ -66,7 +66,7 @@ public class AuthenticationService {
         userService.create(user);
         log.debug("Пользователь создан в базе данных: {}", user.getEmail());
         
-        String token = jwtService.generateToken(user);
+        String token = jwtService.generateAccessToken(user);
         EmailEvent userRegisteredEvent = EmailEvent.builder()
                 .type(EmailEventType.EMAIL_VERIFICATION)
                 .id(UUID.randomUUID().toString())
@@ -103,7 +103,7 @@ public class AuthenticationService {
         
         log.debug("Аутентификация успешна для пользователя: {}", user.getEmail());
         
-        String jwtToken = jwtService.generateToken(user);
+        String jwtToken = jwtService.generateAccessToken(user);
         String refreshToken = refreshTokenService.createRefreshToken(user);
         
         log.info("Пользователь успешно вошел в систему: {}", user.getEmail());
@@ -126,7 +126,7 @@ public class AuthenticationService {
         RefreshToken token = refreshTokenService.verifyRefreshToken(refreshToken);
         User user = userService.findById(token.getUserId());
         
-        String jwtToken = jwtService.generateToken(user);
+        String jwtToken = jwtService.generateAccessToken(user);
         String newRefreshToken = refreshTokenService.rotateRefreshToken(token);
         
         log.debug("Токены успешно обновлены для пользователя: {}", user.getEmail());

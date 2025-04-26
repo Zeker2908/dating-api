@@ -9,11 +9,13 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 import ru.zeker.common.dto.kafka.EmailEvent;
+import ru.zeker.common.dto.kafka.EmailEventType;
 import ru.zeker.notificationservice.dto.EmailContext;
+import ru.zeker.notificationservice.service.handlers.EmailContextStrategy;
 
 import java.time.Duration;
 import java.util.List;
-import java.util.function.Function;
+import java.util.Map;
 
 /**
  * Сервис для прослушивания и обработки событий Kafka.
@@ -25,6 +27,7 @@ import java.util.function.Function;
 public class ConsumerKafkaListeners {
     private final EmailService emailService;
     private final RedisTemplate<String, String> redisTemplate;
+    private final Map<EmailEventType, EmailContextStrategy> emailEventContextMap;
 
     @Value("${app.redis.duration:15}")
     private int redisDuration;
@@ -44,26 +47,36 @@ public class ConsumerKafkaListeners {
     void listenRegisteredEvents(
             List<ConsumerRecord<String, EmailEvent>> records
     ) {
-        int totalRecords = records.size();
-        log.info("Получен пакет из {} сообщений", totalRecords);
+        log.info("Получен пакет из {} сообщений", records.size());
 
-        records.forEach(record -> {
-            switch (record.value().getType()){
-                case EMAIL_VERIFICATION:
-                    log.info("Получено событие подтверждения email: {}", record.value());
-                    processEmailEvent(record, emailService::configureEmailVerificationContext);
-                    break;
-                case FORGOT_PASSWORD:
-                    log.info("Получено событие восстановления пароля: {}", record.value());
-                    processEmailEvent(record, emailService::configureForgotPasswordContext);
-                    break;
-                default:
-                    log.error("Получено неизвестное событие: {}", record.value());
-                    break;
-            }
-        });
+        records.forEach(this::handleRecord);
 
         log.info("Обработка пакета событий завершена");
+    }
+
+    /**
+     * Обрабатывает отдельную запись из Kafka с событием отправки email.
+     * <p>
+     * Выполняет валидацию события, определяет стратегию обработки по типу события,
+     * и инициирует дальнейшую обработку события. Если событие некорректно или не поддерживается,
+     * запись логируется и дальнейшая обработка не производится.
+     *
+     * @param record запись из Kafka, содержащая событие {@link EmailEvent}
+     */
+    private void handleRecord(ConsumerRecord<String, EmailEvent> record) {
+        EmailEvent event = record.value();
+        if (event == null) {
+            log.warn("Пустое событие в записи Kafka: partition={}, offset={}", record.partition(), record.offset());
+            return;
+        }
+
+        EmailContextStrategy contextStrategy = emailEventContextMap.get(event.getType());
+        if (contextStrategy == null) {
+            log.error("Неизвестное событие: {}", event.getType());
+            return;
+        }
+
+        processEmailEvent(record, contextStrategy.handle(event));
     }
 
 
@@ -71,11 +84,11 @@ public class ConsumerKafkaListeners {
      * Обрабатывает отдельное событие отправки email
      *
      * @param record запись из Kafka
-     * @param contextConfigurator функция для создания контекста для отправки email
+     * @param emailContext контекст для отправки email
      */
     private void processEmailEvent(
             ConsumerRecord<String, EmailEvent> record, 
-            Function<EmailEvent, EmailContext> contextConfigurator
+            EmailContext emailContext
     ) {
 
         EmailEvent event = record.value();
@@ -87,8 +100,6 @@ public class ConsumerKafkaListeners {
             if (Boolean.TRUE.equals(redisTemplate.opsForValue().setIfAbsent(eventKey, "processed", Duration.ofMinutes(redisDuration)))) {
                 log.info("Обработка события {} для пользователя: {}, partition: {}, offset: {}",
                         eventType, event.getEmail(), record.partition(), record.offset());
-
-                EmailContext emailContext = contextConfigurator.apply(record.value());
 
                 // Запускаем отправку асинхронно и не блокируем текущий поток
                 emailService.sendEmail(emailContext).exceptionally(ex -> {

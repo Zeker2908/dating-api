@@ -1,4 +1,4 @@
-package ru.zeker.authenticationservice.domain.model.entity;
+package ru.zeker.common.model;
 
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
