@@ -131,12 +131,12 @@ public class SecurityConfig {
 
     /**
      * Настраивает основную цепочку фильтров безопасности для защищенных конечных точек.
-     * 
+     *
      * <p>Эта цепочка фильтров применяется ко всем запросам, которые не обрабатываются
      * цепочками фильтров OAuth2 и аутентификации. Она требует, чтобы все запросы были
      * аутентифицированы, отключает CSRF-защиту и настраивает управление сессиями
      * как STATELESS, что соответствует подходу REST API.</p>
-     * 
+     *
      * <p>Цепочка также добавляет пользовательский фильтр валидации заголовков перед
      * стандартным фильтром аутентификации по имени пользователя и паролю.</p>
      *
@@ -149,10 +149,9 @@ public class SecurityConfig {
     public SecurityFilterChain mainFilterChain(HttpSecurity http) throws Exception {
         http
                 .authorizeHttpRequests(auth -> auth
-                        .anyRequest().authenticated())
+                        .anyRequest().permitAll())
                 .csrf(AbstractHttpConfigurer::disable)
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .addFilterBefore(headerValidationFilter, UsernamePasswordAuthenticationFilter.class);
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
         return http.build();
     }
 

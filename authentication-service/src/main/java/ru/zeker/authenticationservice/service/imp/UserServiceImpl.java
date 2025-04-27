@@ -5,8 +5,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,7 +21,6 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
-    private static final String AUTH_NOT_FOUND = "Аутентификация не найдена";
     private static final String OLD_PASSWORD_MISMATCH = "Старый пароль не совпадает";
     private static final String SAME_PASSWORDS = "Новый пароль должен отличаться от старого";
     
@@ -86,20 +83,15 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional(readOnly = true)
-    public User getCurrentUser() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null && authentication.isAuthenticated()) {
-            return repository.findByEmail(authentication.getName())
+    public User getCurrentUser(@NotNull String username) {
+            return repository.findByEmail(username)
                     .orElseThrow(() -> new UserNotFoundException("Текущий пользователь не найден в базе данных"));
-        } else {
-            throw new AuthenticationCredentialsNotFoundException(AUTH_NOT_FOUND);
-        }
     }
 
     @Override
     @Transactional
-    public void changePassword(String oldPassword, String newPassword) {
-        User user = getCurrentUser();
+    public void changePassword(String username, String oldPassword, String newPassword) {
+        User user = getCurrentUser(username);
         
         if (oldPassword.equals(newPassword)) {
             throw new BadCredentialsException(SAME_PASSWORDS);

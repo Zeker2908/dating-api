@@ -18,15 +18,15 @@ import java.util.Objects;
 public class UserController {
     private final UserService userService;
 
-    //TODO: сделать dto
     @GetMapping("/me")
-    public ResponseEntity<Object> getCurrentUser() {
-        return ResponseEntity.ok(userService.getCurrentUser());
+    public ResponseEntity<Object> getCurrentUser(@RequestHeader("X-User-Name") String username) {
+        return ResponseEntity.ok(userService.getCurrentUser(username));
     }
 
     @PatchMapping("/me/password")
-    public ResponseEntity<Void> changePassword(@RequestBody @Valid ChangerPasswordRequest changerPasswordRequest) {
-        userService.changePassword(changerPasswordRequest.getOldPassword(), changerPasswordRequest.getNewPassword());
+    public ResponseEntity<Void> changePassword(@RequestHeader("X-User-Name") String username,
+                                               @RequestBody @Valid ChangerPasswordRequest changerPasswordRequest) {
+        userService.changePassword(username,changerPasswordRequest.getOldPassword(), changerPasswordRequest.getNewPassword());
 
         return ResponseEntity.noContent().build();
     }

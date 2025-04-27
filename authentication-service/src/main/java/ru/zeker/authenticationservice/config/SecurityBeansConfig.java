@@ -46,7 +46,7 @@ public class SecurityBeansConfig {
     }
 
     @Bean
-    public JwtUtils jwtUtils(JwtProperties jwtProperties) {
+    public JwtUtils jwtUtils() {
         return new JwtUtils(jwtProperties);
     }
 }

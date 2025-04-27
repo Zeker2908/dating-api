@@ -36,7 +36,6 @@ import java.util.UUID;
 public class AuthenticationService {
     private final UserService userService;
     private final JwtService jwtService;
-    private final JwtUtils jwtUtils;
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final RefreshTokenService refreshTokenService;
@@ -151,7 +150,7 @@ public class AuthenticationService {
         
         User user = userService.findById(jwtService.extractUserId(token));
         
-        if (!jwtUtils.isTokenValid(token, user)) {
+        if (!jwtService.isTokenValid(token, user)) {
             log.warn("Попытка подтверждения email с недействительным токеном");
             throw new InvalidTokenException();
         }
@@ -208,7 +207,7 @@ public class AuthenticationService {
 
         User user = userService.findById(jwtService.extractUserId(token));
 
-        if (!jwtUtils.isTokenValid(token, user)) {
+        if (!jwtService.isTokenValid(token, user)) {
             log.warn("Попытка сброса пароля с недействительным токеном");
             throw new InvalidTokenException();
         }

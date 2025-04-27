@@ -65,6 +65,10 @@ public class JwtService {
         return generateToken(userDetails,claims,jwtProperties.getAccess().getExpiration());
     }
 
+    public boolean isTokenValid(String token, UserDetails userDetails) {
+        return userDetails.getUsername().equals(jwtUtils.extractUsername(token)) && !jwtUtils.isTokenExpired(token);
+    }
+
     private String generateToken(UserDetails userDetails, Map<String, Object> claims, long expiration) {
         long currentTimeMillis = System.currentTimeMillis();
 
