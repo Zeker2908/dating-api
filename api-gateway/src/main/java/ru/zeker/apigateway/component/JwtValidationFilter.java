@@ -119,6 +119,6 @@ public class JwtValidationFilter implements GlobalFilter, Ordered {
 
     @Override
     public int getOrder() {
-        return -100; // Высокий приоритет
+        return Ordered.HIGHEST_PRECEDENCE;
     }
 }

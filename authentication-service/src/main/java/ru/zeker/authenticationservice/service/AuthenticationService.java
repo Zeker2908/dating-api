@@ -14,6 +14,7 @@ import ru.zeker.authenticationservice.domain.dto.request.ForgotPasswordRequest;
 import ru.zeker.authenticationservice.domain.dto.request.LoginRequest;
 import ru.zeker.authenticationservice.domain.dto.request.RegisterRequest;
 import ru.zeker.authenticationservice.domain.dto.request.ResetPasswordRequest;
+import ru.zeker.common.component.JwtUtils;
 import ru.zeker.common.dto.kafka.EmailEvent;
 import ru.zeker.authenticationservice.domain.dto.*;
 import ru.zeker.authenticationservice.domain.model.entity.RefreshToken;
@@ -35,6 +36,7 @@ import java.util.UUID;
 public class AuthenticationService {
     private final UserService userService;
     private final JwtService jwtService;
+    private final JwtUtils jwtUtils;
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final RefreshTokenService refreshTokenService;
@@ -149,7 +151,7 @@ public class AuthenticationService {
         
         User user = userService.findById(jwtService.extractUserId(token));
         
-        if (!jwtService.isTokenValid(token, user)) {
+        if (!jwtUtils.isTokenValid(token, user)) {
             log.warn("Попытка подтверждения email с недействительным токеном");
             throw new InvalidTokenException();
         }
@@ -206,7 +208,7 @@ public class AuthenticationService {
 
         User user = userService.findById(jwtService.extractUserId(token));
 
-        if (!jwtService.isTokenValid(token, user)) {
+        if (!jwtUtils.isTokenValid(token, user)) {
             log.warn("Попытка сброса пароля с недействительным токеном");
             throw new InvalidTokenException();
         }

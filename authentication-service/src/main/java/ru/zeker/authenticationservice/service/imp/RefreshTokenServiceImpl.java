@@ -13,6 +13,7 @@ import ru.zeker.authenticationservice.repository.RefreshTokenRepository;
 import ru.zeker.authenticationservice.service.JwtService;
 import ru.zeker.authenticationservice.service.RefreshTokenService;
 import ru.zeker.authenticationservice.service.UserService;
+import ru.zeker.common.component.JwtUtils;
 
 import java.util.Date;
 import java.util.UUID;
@@ -27,6 +28,7 @@ import java.util.concurrent.TimeUnit;
 @RequiredArgsConstructor
 public class RefreshTokenServiceImpl implements RefreshTokenService {
     private final JwtService jwtService;
+    private final JwtUtils jwtUtils;
     private final RefreshTokenRepository refreshTokenRepository;
     private final UserService userService;
 
@@ -42,7 +44,7 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
         log.debug("Создание нового refresh-токена для пользователя с ID: {}", user.getId());
         
         String token = jwtService.generateRefreshToken(user);
-        Date expiryDate = jwtService.extractExpiration(token);
+        Date expiryDate = jwtUtils.extractExpiration(token);
         long ttlSeconds = TimeUnit.MILLISECONDS.toSeconds(expiryDate.getTime() - System.currentTimeMillis());
 
         RefreshToken refreshToken = RefreshToken.builder()
