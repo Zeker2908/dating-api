@@ -1,6 +1,7 @@
 package ru.zeker.apigateway.component;
 
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
@@ -8,6 +9,7 @@ import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.cloud.gateway.route.Route;
 import org.springframework.cloud.gateway.support.ServerWebExchangeUtils;
 import org.springframework.core.Ordered;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.stereotype.Component;
@@ -40,10 +42,7 @@ public class JwtValidationFilter implements GlobalFilter, Ordered {
                     }
                     return extractAndValidateToken(exchange)
                             .flatMap(claims -> verifyAuthorization(exchange, claims))
-                            .flatMap(claims -> {
-                                ServerWebExchange mutatedExchange = addUserHeaders(exchange, claims);
-                                return chain.filter(mutatedExchange);
-                            });
+                            .flatMap(claims -> chain.filter(addUserHeaders(exchange, claims)));
                 })
                 .onErrorResume(AuthException.class, ex -> handleAuthError(exchange, ex));
     }
@@ -51,7 +50,7 @@ public class JwtValidationFilter implements GlobalFilter, Ordered {
     private Mono<Boolean> checkIfAuthRequired(ServerWebExchange exchange) {
         return Mono.fromCallable(() -> {
             Route route = exchange.getAttribute(ServerWebExchangeUtils.GATEWAY_ROUTE_ATTR);
-            return (boolean) Optional.ofNullable(route)
+            return Optional.ofNullable(route)
                     .map(Route::getMetadata)
                     .map(metadata -> Boolean.parseBoolean(metadata.getOrDefault(REQUIRES_AUTH_KEY, "true").toString()))
                     .orElse(true);
@@ -60,25 +59,31 @@ public class JwtValidationFilter implements GlobalFilter, Ordered {
 
     private Mono<Claims> extractAndValidateToken(ServerWebExchange exchange) {
         return Mono.fromCallable(() -> {
-            String authHeader = exchange.getRequest().getHeaders().getFirst("Authorization");
+            String authHeader = exchange.getRequest().getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
 
             if (authHeader == null || !authHeader.startsWith(BEARER_PREFIX)) {
-                throw new AuthException("Нет заголовка Authorization", HttpStatus.UNAUTHORIZED);
+                throw new AuthException("Нет заголовка " + HttpHeaders.AUTHORIZATION, HttpStatus.UNAUTHORIZED);
             }
 
             String token = authHeader.substring(BEARER_PREFIX.length());
-
-            if (jwtUtils.isTokenExpired(token)) {
-                throw new AuthException("Токен истек", HttpStatus.UNAUTHORIZED);
+            try {
+                if (jwtUtils.isTokenExpired(token)) {
+                    throw new AuthException("Токен истек", HttpStatus.UNAUTHORIZED);
+                }
+                return jwtUtils.extractAllClaims(token);
+            } catch (JwtException e) {
+                throw new AuthException(e.getMessage(), HttpStatus.UNAUTHORIZED);
             }
-
-            return jwtUtils.extractAllClaims(token);
         });
     }
 
     private Mono<Claims> verifyAuthorization(ServerWebExchange exchange, Claims claims) {
         return Mono.fromCallable(() -> {
             String userRole = claims.get("role", String.class);
+            if (userRole == null) {
+                throw new AuthException("Роль пользователя не указана в токене", HttpStatus.FORBIDDEN);
+            }
+
             String requiredRole = getRequiredRole(exchange);
 
             if (requiredRole != null && !requiredRole.equals(userRole)) {

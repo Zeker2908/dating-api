@@ -11,10 +11,7 @@ import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import ru.zeker.authenticationservice.domain.dto.*;
-import ru.zeker.authenticationservice.domain.dto.request.ForgotPasswordRequest;
-import ru.zeker.authenticationservice.domain.dto.request.LoginRequest;
-import ru.zeker.authenticationservice.domain.dto.request.RegisterRequest;
-import ru.zeker.authenticationservice.domain.dto.request.ResetPasswordRequest;
+import ru.zeker.authenticationservice.domain.dto.request.*;
 import ru.zeker.authenticationservice.domain.dto.response.AuthenticationResponse;
 import ru.zeker.authenticationservice.service.AuthenticationService;
 import ru.zeker.authenticationservice.service.RefreshTokenService;
@@ -28,7 +25,7 @@ import java.time.Duration;
 @RestController
 @RequestMapping("/auth")
 @RequiredArgsConstructor
-public class AuthenticationController {
+public class AuthenticationController { //TODO: Сделать передачу токена в боди, а не в через query параметры
     private final AuthenticationService authenticationService;
     private final RefreshTokenService refreshTokenService;
 
@@ -67,13 +64,13 @@ public class AuthenticationController {
     /**
      * Подтверждение email пользователя
      *
-     * @param token токен подтверждения
+     * @param request токен
      * @return сообщение о статусе операции
      */
     @PostMapping("/email-confirmation")
-    public ResponseEntity<Void> confirmEmail(@RequestParam @NotNull String token) {
+    public ResponseEntity<Void> confirmEmail(@RequestBody @Valid ConfirmationEmailRequest request) {
         log.info("Запрос на подтверждение email");
-        authenticationService.confirmEmail(token);
+        authenticationService.confirmEmail(request);
 
         return ResponseEntity.noContent().build();
     }
@@ -95,15 +92,13 @@ public class AuthenticationController {
     /**
      * Сброс пароля пользователя по токену
      *
-     * @param token токен для сброса пароля
      * @param request новый пароль
      * @return сообщение о статусе операции
      */
     @PostMapping("/password-reset")
-    public ResponseEntity<Void> resetPassword(@RequestParam @NotNull String token,
-                                                             @RequestBody @Valid ResetPasswordRequest request) {
+    public ResponseEntity<Void> resetPassword(@RequestBody @Valid ResetPasswordRequest request) {
         log.info("Запрос на сброс пароля");
-        authenticationService.resetPassword(request, token);
+        authenticationService.resetPassword(request);
 
 
         return ResponseEntity.noContent().build();

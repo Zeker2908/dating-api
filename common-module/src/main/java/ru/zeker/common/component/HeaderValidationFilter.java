@@ -17,7 +17,6 @@ import java.io.IOException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 
-@Component
 @RequiredArgsConstructor
 public class HeaderValidationFilter extends OncePerRequestFilter {
 

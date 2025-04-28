@@ -5,6 +5,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import ru.zeker.authenticationservice.domain.dto.request.ChangerPasswordRequest;
+import ru.zeker.authenticationservice.domain.dto.response.UserResponse;
+import ru.zeker.authenticationservice.domain.mapper.UserMapper;
 import ru.zeker.authenticationservice.service.UserService;
 
 import java.security.Principal;
@@ -17,10 +19,11 @@ import java.util.Objects;
 @RequiredArgsConstructor
 public class UserController {
     private final UserService userService;
+    private final UserMapper userMapper;
 
     @GetMapping("/me")
-    public ResponseEntity<Object> getCurrentUser(@RequestHeader("X-User-Name") String username) {
-        return ResponseEntity.ok(userService.getCurrentUser(username));
+    public ResponseEntity<UserResponse> getCurrentUser(@RequestHeader("X-User-Name") String username) {
+        return ResponseEntity.ok(userMapper.toResponse(userService.getCurrentUser(username)));
     }
 
     @PatchMapping("/me/password")

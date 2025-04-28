@@ -16,10 +16,10 @@ public class VerificationEmailContextStrategy implements EmailContextStrategy {
 
     private final EmailService emailService;
 
-    @Value("${app.domain}")
+    @Value("${app.domain:http://localhost:8080}")
     private String applicationUrl;
 
-    @Value("${app.links.email-verification}")
+    @Value("${app.links.email-verification:/email-confirmation}")
     private String emailVerificationUrl;
 
     @Override

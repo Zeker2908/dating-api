@@ -9,6 +9,10 @@ import lombok.Data;
 @Data
 @Builder
 public class ResetPasswordRequest {
+
+    @NotBlank
+    private String token;
+
     @Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{8,255}$",
             message = "Пароль должен содержать как минимум одну заглавную букву, одну строчную букву, одну цифру и один специальный символ")
     @NotBlank(message = "Пароль не может быть пустым")

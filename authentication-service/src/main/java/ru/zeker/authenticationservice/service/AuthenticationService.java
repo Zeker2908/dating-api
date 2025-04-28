@@ -2,18 +2,14 @@ package ru.zeker.authenticationservice.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
-import ru.zeker.authenticationservice.domain.dto.request.ForgotPasswordRequest;
-import ru.zeker.authenticationservice.domain.dto.request.LoginRequest;
-import ru.zeker.authenticationservice.domain.dto.request.RegisterRequest;
-import ru.zeker.authenticationservice.domain.dto.request.ResetPasswordRequest;
+import ru.zeker.authenticationservice.domain.dto.request.*;
+import ru.zeker.authenticationservice.domain.mapper.UserMapper;
 import ru.zeker.common.component.JwtUtils;
 import ru.zeker.common.dto.kafka.EmailEvent;
 import ru.zeker.authenticationservice.domain.dto.*;
@@ -24,7 +20,6 @@ import ru.zeker.authenticationservice.exception.InvalidTokenException;
 import ru.zeker.authenticationservice.exception.UserAlreadyEnableException;
 import ru.zeker.common.dto.kafka.EmailEventType;
 
-import java.time.Duration;
 import java.util.UUID;
 
 /**
@@ -36,15 +31,13 @@ import java.util.UUID;
 public class AuthenticationService {
     private final UserService userService;
     private final JwtService jwtService;
+    private final JwtUtils jwtUtils;
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final RefreshTokenService refreshTokenService;
     private final KafkaProducer kafkaProducer;
     private final PasswordHistoryService passwordHistoryService;
-    private final RedisTemplate<String, String> redisTemplate;
-
-    @Value("${app.redis.duration}")
-    private int redisDuration;
+    private final UserMapper userMapper;
 
     /**
      * Регистрация нового пользователя и отправка сообщения для верификации email
@@ -53,16 +46,8 @@ public class AuthenticationService {
      */
     public void register(RegisterRequest request) {
         log.info("Регистрация нового пользователя с email: {}", request.getEmail());
-        
-        User user = User.builder()
-                .email(request.getEmail().toLowerCase())
-                .password(request.getPassword())
-                .firstName(StringUtils.capitalize(request.getFirstName().trim()))
-                .lastName(StringUtils.capitalize(request.getLastName().trim()))
-                .role(Role.USER)
-                .enabled(false)
-                .locked(false)
-                .build();
+
+        User user = userMapper.toEntity(request);
                 
         userService.create(user);
         log.debug("Пользователь создан в базе данных: {}", user.getEmail());
@@ -141,12 +126,13 @@ public class AuthenticationService {
     /**
      * Подтверждение email пользователя
      *
-     * @param token JWT токен для подтверждения
+     * @param request запрос с JWT токен для подтверждения
      * @throws InvalidTokenException если токен недействителен
      * @throws UserAlreadyEnableException если email уже подтвержден
      */
-    public void confirmEmail(String token) {
+    public void confirmEmail(ConfirmationEmailRequest request) {
         log.info("Запрос на подтверждение email");
+        String token = request.getToken();
         
         User user = userService.findById(jwtService.extractUserId(token));
         
@@ -194,27 +180,33 @@ public class AuthenticationService {
      * Сброс пароля пользователя по токену
      *
      * @param request запрос с новым паролем
-     * @param token JWT токен для подтверждения
      * @throws InvalidTokenException если токен недействителен
      */
-    public void resetPassword(ResetPasswordRequest request, String token) {
+    public void resetPassword(ResetPasswordRequest request) {
         log.info("Запрос на сброс пароля");
+        String token = request.getToken();
+        String password = request.getPassword();
 
-        if(Boolean.FALSE.equals(redisTemplate.opsForValue().setIfAbsent(jwtService.extractNonce(token), "proccesed", Duration.ofMinutes(redisDuration)))){
-            log.warn("Токен уже был обработан");
+        if(jwtUtils.isTokenExpired(token)) {
+            log.warn("Попытка сброса пароля с просроченным токеном");
             throw new InvalidTokenException();
         }
 
         User user = userService.findById(jwtService.extractUserId(token));
 
-        if (!jwtService.isTokenValid(token, user)) {
-            log.warn("Попытка сброса пароля с недействительным токеном");
+        if(!user.getVersion().equals(jwtService.extractVersion(token))){
+            log.warn("Попытка сбросить пароль с измененными пользовательскими данными ");
             throw new InvalidTokenException();
         }
 
-        passwordHistoryService.savePassword(user, request.getPassword());
+        if (!jwtUtils.isValidUsername(token, user.getEmail())) {
+            log.warn("Попытка сброса пароля с недействительными данными токена");
+            throw new InvalidTokenException();
+        }
 
-        user.setPassword(passwordEncoder.encode(request.getPassword()));
+        passwordHistoryService.savePassword(user, password);
+
+        user.setPassword(passwordEncoder.encode(password));
         userService.update(user);
 
         refreshTokenService.revokeAllUserTokens(token);

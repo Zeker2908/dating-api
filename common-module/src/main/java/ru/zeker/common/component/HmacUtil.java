@@ -8,7 +8,6 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
 
-@Component
 public class HmacUtil {
 
     public static String sign (String data, String secret, String algorithm) throws NoSuchAlgorithmException, InvalidKeyException {

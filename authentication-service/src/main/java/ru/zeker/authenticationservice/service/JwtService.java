@@ -1,5 +1,6 @@
 package ru.zeker.authenticationservice.service;
 
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import lombok.RequiredArgsConstructor;
@@ -10,10 +11,7 @@ import ru.zeker.common.component.JwtUtils;
 import ru.zeker.common.config.JwtProperties;
 import ru.zeker.authenticationservice.domain.model.entity.User;
 
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -23,20 +21,19 @@ public class JwtService {
     private final JwtProperties jwtProperties;
 
     public UUID extractUserId(String token){
-       String id = jwtUtils.extractClaim(token, claims -> claims.get("id", String.class));
-       if (id == null){
-           throw new InvalidTokenException("Некорректный идентификатор пользователя");
-       }
+       Optional<String> id = Optional.ofNullable(jwtUtils.extractClaim(token, claims -> claims.get("id", String.class)));
         try {
-            return UUID.fromString(id);
+            return id.map(UUID::fromString).orElseThrow(() -> new InvalidTokenException("Некорректный идентификатор пользователя"));
         } catch (IllegalArgumentException e) {
             throw new InvalidTokenException("Некорректный идентификатор пользователя");
         }
     }
 
-    public String extractNonce(String token) {
-        return jwtUtils.extractClaim(token, claims -> claims.get("nonce", String.class));
+    public Long extractVersion(String token){
+       return jwtUtils.extractClaim(token, claims -> claims.get("version", Long.class));
     }
+
+
 
     public String generateAccessToken(UserDetails userDetails){
         Map<String, Object> claims = new HashMap<>();
@@ -60,7 +57,7 @@ public class JwtService {
         Map<String,Object> claims = new HashMap<>();
         if(userDetails instanceof User customUserDetails){
             claims.put("id", customUserDetails.getId());
-            claims.put("nonce", UUID.randomUUID().toString());
+            claims.put("version", customUserDetails.getVersion());
         }
         return generateToken(userDetails,claims,jwtProperties.getAccess().getExpiration());
     }

@@ -33,8 +33,6 @@ spring:
             - Path=/api/v1/users/**
           filters:
             - StripPrefix=2
-          metadata:
-            auth-required: true
 
         # 1) Начало OAuth2‑Authorization Code Flow
         - id: oauth2-authorization

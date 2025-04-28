@@ -38,7 +38,6 @@ public class SecurityConfig {
     private final UserDetailsService userDetailsService;
     private final AuthenticationProvider authenticationProvider;
     private final OAuth2UserService<OAuth2UserRequest, OAuth2User> oAuth2UserService;
-    private final HeaderValidationFilter headerValidationFilter;
 
     /**
      * Настраивает {@link SecurityFilterChain} для конечных точек OAuth2.
