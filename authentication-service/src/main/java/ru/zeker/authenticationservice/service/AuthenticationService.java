@@ -7,14 +7,12 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
 import ru.zeker.authenticationservice.domain.dto.request.*;
 import ru.zeker.authenticationservice.domain.mapper.UserMapper;
 import ru.zeker.common.component.JwtUtils;
 import ru.zeker.common.dto.kafka.EmailEvent;
 import ru.zeker.authenticationservice.domain.dto.*;
 import ru.zeker.authenticationservice.domain.model.entity.RefreshToken;
-import ru.zeker.authenticationservice.domain.model.enums.Role;
 import ru.zeker.authenticationservice.domain.model.entity.User;
 import ru.zeker.authenticationservice.exception.InvalidTokenException;
 import ru.zeker.authenticationservice.exception.UserAlreadyEnableException;
@@ -30,6 +28,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class AuthenticationService {
     private final UserService userService;
+    private final UserMapper userMapper;
     private final JwtService jwtService;
     private final JwtUtils jwtUtils;
     private final PasswordEncoder passwordEncoder;
@@ -37,7 +36,6 @@ public class AuthenticationService {
     private final RefreshTokenService refreshTokenService;
     private final KafkaProducer kafkaProducer;
     private final PasswordHistoryService passwordHistoryService;
-    private final UserMapper userMapper;
 
     /**
      * Регистрация нового пользователя и отправка сообщения для верификации email

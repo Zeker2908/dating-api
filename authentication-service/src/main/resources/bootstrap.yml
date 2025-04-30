@@ -38,16 +38,21 @@ spring:
     password: admin
   jpa:
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: validate
     properties:
       hibernate:
         format_sql: true
     database: postgresql
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     show-sql: true
+  liquibase:
+    enabled: true
+    change-log: classpath:/db/changelog/db.changelog-master.yaml
 logging:
   level:
     root: INFO
     org.springframework.security: DEBUG
     eureka: INFO
     ru.zeker: DEBUG
+jwt:
+  private-key-path: classpath:private_key.pem

@@ -15,6 +15,8 @@ import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 
+import static ru.zeker.authenticationservice.util.CookieUtils.createRefreshTokenCookie;
+
 @RestController
 @RequestMapping("/oauth2")
 public class OAuth2Controller {
@@ -26,7 +28,7 @@ public class OAuth2Controller {
         String decodedRefreshToken = URLDecoder.decode(refreshToken, StandardCharsets.UTF_8);
 
         AuthenticationResponse authenticationResponse = new AuthenticationResponse(decodedAccessToken);
-        ResponseCookie cookie = AuthenticationController.createRefreshTokenCookie(decodedRefreshToken, Duration.ofDays(7));
+        ResponseCookie cookie = createRefreshTokenCookie(decodedRefreshToken, Duration.ofDays(7));
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
 
         return ResponseEntity.ok(authenticationResponse);

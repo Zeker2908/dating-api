@@ -1,0 +1,93 @@
+databaseChangeLog:
+  - changeSet:
+      id: 001-create-users
+      author: zeker
+      changes:
+        - createTable:
+            tableName: users
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamp without time zone
+              - column:
+                  name: updated_at
+                  type: timestamp without time zone
+              - column:
+                  name: version
+                  type: bigint
+              - column:
+                  name: email
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: password
+                  type: varchar(255)
+              - column:
+                  name: first_name
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: last_name
+                  type: varchar(255)
+              - column:
+                  name: role
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: provider
+                  type: varchar(255)
+              - column:
+                  name: o_auth_id
+                  type: varchar(255)
+              - column:
+                  name: enabled
+                  type: boolean
+                  constraints:
+                    nullable: false
+              - column:
+                  name: locked
+                  type: boolean
+                  constraints:
+                    nullable: false
+
+  - changeSet:
+      id: 002-create-password-history
+      author: zeker
+      changes:
+        - createTable:
+            tableName: password_history
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamp without time zone
+              - column:
+                  name: updated_at
+                  type: timestamp without time zone
+              - column:
+                  name: version
+                  type: bigint
+              - column:
+                  name: user_id
+                  type: UUID
+                  constraints:
+                    nullable: false
+              - column:
+                  name: password
+                  type: varchar(255)
+                  constraints:
+                    nullable: false

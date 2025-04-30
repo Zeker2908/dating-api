@@ -2,16 +2,11 @@ package ru.zeker.authenticationservice.domain.component;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
-import ru.zeker.authenticationservice.domain.model.entity.PasswordHistory;
-import ru.zeker.authenticationservice.domain.model.enums.Role;
 import ru.zeker.authenticationservice.domain.model.entity.User;
-import ru.zeker.authenticationservice.service.PasswordHistoryService;
+import ru.zeker.authenticationservice.domain.model.enums.Role;
 import ru.zeker.authenticationservice.service.UserService;
 
 import java.security.SecureRandom;
@@ -26,15 +21,13 @@ public class DataInitializer implements CommandLineRunner {
     private static final String ANSI_RESET = "\u001B[0m";
 
     private final UserService userService;
-    private final PasswordEncoder passwordEncoder;
-    private final PasswordHistoryService passwordHistoryService;
 
     @Value("${app.admin.username}")
     private String adminName;
 
     /**
      * Инициализирует администратора в системе.
-     * Если администратор с данным email не существует, то создает администратора с сгенерированным паролем.
+     * Если администратор с данным email не существует, то создает администратора со сгенерированным паролем.
      * Логирует информацию о созданном администраторе.
      * @param args аргументы командной строки
      */
@@ -55,7 +48,7 @@ public class DataInitializer implements CommandLineRunner {
             log.info("Администратор создан.");
             log.info(ANSI_GREEN + "Сгенерированный пароль: {}" + ANSI_RESET, password);
         } else {
-            log.info("Admin user already exists.");
+            log.info("Пользователь администратора уже создан");
         }
     }
 

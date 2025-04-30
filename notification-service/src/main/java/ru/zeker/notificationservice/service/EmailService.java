@@ -19,6 +19,7 @@ import ru.zeker.notificationservice.dto.EmailContext;
 import ru.zeker.notificationservice.exception.EmailSendingException;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Year;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -38,6 +39,9 @@ public class EmailService {
     @Value("${spring.mail.username}")
     private String from;
 
+    @Value("${app.company-name:Dating Application}")
+    private String companyName;
+
     /**
      * Асинхронно отправляет электронное письмо на основе данных контекста
      *
@@ -47,7 +51,6 @@ public class EmailService {
      */
     @Retryable(
             retryFor = {EmailSendingException.class},
-            maxAttempts = 3,
             backoff = @Backoff(delay = 1000, multiplier = 2, maxDelay = 10000)
     )
     @Async("emailSendingExecutor")
@@ -123,6 +126,8 @@ public class EmailService {
         templateContext.put("firstName", event.getFirstName());
         templateContext.put("verificationURL", actionUrl);
         templateContext.put("supportEmail", from);
+        templateContext.put("currentYear", Year.now().getValue());
+        templateContext.put("companyName", companyName);
         
         // Создание контекста письма
         return EmailContext.builder()

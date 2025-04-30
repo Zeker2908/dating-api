@@ -20,6 +20,8 @@ import ru.zeker.common.component.JwtUtils;
 
 import java.util.Optional;
 
+import static ru.zeker.common.headers.ApiHeaders.*;
+
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -27,9 +29,6 @@ public class JwtValidationFilter implements GlobalFilter, Ordered {
     private static final String BEARER_PREFIX = "Bearer ";
     private static final String REQUIRES_AUTH_KEY = "auth-required";
     private static final String REQUIRED_ROLE_KEY = "required-role";
-    private static final String X_USER_NAME_HEADER = "X-User-Name";
-    private static final String X_USER_ROLE_HEADER = "X-User-Role";
-    private static final String X_ERROR_HEADER = "X-Error";
 
     private final JwtUtils jwtUtils;
 
@@ -104,6 +103,7 @@ public class JwtValidationFilter implements GlobalFilter, Ordered {
 
     private ServerWebExchange addUserHeaders(ServerWebExchange exchange, Claims claims) {
         ServerHttpRequest mutatedRequest = exchange.getRequest().mutate()
+                .header(X_USER_ID_KEY, claims.get("id", String.class))
                 .header(X_USER_NAME_HEADER, claims.getSubject())
                 .header(X_USER_ROLE_HEADER, claims.get("role", String.class))
                 .build();

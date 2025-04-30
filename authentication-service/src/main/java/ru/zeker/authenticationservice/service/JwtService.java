@@ -1,16 +1,24 @@
 package ru.zeker.authenticationservice.service;
 
-import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.Resource;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
+import ru.zeker.authenticationservice.domain.model.entity.User;
 import ru.zeker.authenticationservice.exception.InvalidTokenException;
 import ru.zeker.common.component.JwtUtils;
 import ru.zeker.common.config.JwtProperties;
-import ru.zeker.authenticationservice.domain.model.entity.User;
 
+import java.io.IOException;
+import java.security.Key;
+import java.security.KeyFactory;
+import java.security.NoSuchAlgorithmException;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.*;
 
 @Service
@@ -19,6 +27,29 @@ public class JwtService {
 
     private final JwtUtils jwtUtils;
     private final JwtProperties jwtProperties;
+
+
+    @Value("${jwt.private-key-path}")
+    private Resource privateKeyResource;
+
+    private Key privateKey;
+
+    @PostConstruct
+    public void init() throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
+        String key = new String(privateKeyResource.getInputStream().readAllBytes());
+        if (!key.isEmpty()) {
+            String privateKeyPEM = key
+                    .replace("-----BEGIN PRIVATE KEY-----", "")
+                    .replace("-----END PRIVATE KEY-----", "")
+                    .replaceAll("\\s+", "");
+            byte[] keyBytes = Base64.getDecoder().decode(privateKeyPEM);
+            PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(keyBytes);
+            KeyFactory kf = KeyFactory.getInstance("RSA");
+            this.privateKey = kf.generatePrivate(spec);
+        }else {
+            throw new IllegalStateException("Приватный ключ RSA не задан");
+        }
+    }
 
     public UUID extractUserId(String token){
        Optional<String> id = Optional.ofNullable(jwtUtils.extractClaim(token, claims -> claims.get("id", String.class)));
@@ -74,7 +105,7 @@ public class JwtService {
                 .setSubject(userDetails.getUsername())
                 .setIssuedAt(new Date(currentTimeMillis))
                 .setExpiration(new Date(currentTimeMillis+expiration))
-                .signWith(jwtUtils.getSigningKey(),SignatureAlgorithm.HS256)
+                .signWith(privateKey,SignatureAlgorithm.RS256)
                 .compact();
     }
 

@@ -11,7 +11,6 @@ import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserServ
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserService;
 import org.springframework.security.oauth2.core.user.OAuth2User;
-import ru.zeker.common.component.HeaderValidationFilter;
 import ru.zeker.common.component.JwtUtils;
 import ru.zeker.common.config.JwtProperties;
 
@@ -38,11 +37,6 @@ public class SecurityBeansConfig {
                 return super.loadUser(userRequest);
             }
         };
-    }
-
-    @Bean
-    public HeaderValidationFilter headerValidationFilter() {
-        return new HeaderValidationFilter(jwtProperties);
     }
 
     @Bean

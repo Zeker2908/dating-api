@@ -18,6 +18,8 @@ import ru.zeker.authenticationservice.service.RefreshTokenService;
 
 import java.time.Duration;
 
+import static ru.zeker.authenticationservice.util.CookieUtils.createRefreshTokenCookie;
+
 /**
  * Контроллер для управления аутентификацией пользователей
  */
@@ -25,7 +27,7 @@ import java.time.Duration;
 @RestController
 @RequestMapping("/auth")
 @RequiredArgsConstructor
-public class AuthenticationController { //TODO: Сделать передачу токена в боди, а не в через query параметры
+public class AuthenticationController {
     private final AuthenticationService authenticationService;
     private final RefreshTokenService refreshTokenService;
 
@@ -73,7 +75,7 @@ public class AuthenticationController { //TODO: Сделать передачу 
         authenticationService.confirmEmail(request);
 
         return ResponseEntity.noContent().build();
-    }
+    } //TODO: добавить повторную отправку
 
     /**
      * Запрос на восстановление пароля
@@ -99,8 +101,7 @@ public class AuthenticationController { //TODO: Сделать передачу 
     public ResponseEntity<Void> resetPassword(@RequestBody @Valid ResetPasswordRequest request) {
         log.info("Запрос на сброс пароля");
         authenticationService.resetPassword(request);
-
-
+        //TODO:Придумать как отозвать все рефреш токены
         return ResponseEntity.noContent().build();
     }
 
@@ -156,20 +157,4 @@ public class AuthenticationController { //TODO: Сделать передачу 
         return ResponseEntity.noContent().build();
     }
 
-    /**
-     * Создает cookie для refresh-токена с заданными параметрами
-     *
-     * @param value значение токена
-     * @param duration срок действия
-     * @return cookie с токеном обновления
-     */
-    public static ResponseCookie createRefreshTokenCookie(String value, Duration duration) {
-        return ResponseCookie.from("refresh_token", value)
-                .httpOnly(true)
-                .secure(true)
-                .path("/api")
-                .maxAge(duration)
-                .sameSite("Strict")
-                .build();
-    }
 }

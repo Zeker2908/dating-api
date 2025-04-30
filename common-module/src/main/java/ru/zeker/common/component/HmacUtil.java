@@ -1,14 +1,13 @@
 package ru.zeker.common.component;
 
-import org.springframework.stereotype.Component;
-
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
 
-public class HmacUtil {
+public final class HmacUtil {
+    private HmacUtil(){}
 
     public static String sign (String data, String secret, String algorithm) throws NoSuchAlgorithmException, InvalidKeyException {
         SecretKeySpec secretKeySpec = new SecretKeySpec(secret.getBytes(), algorithm);

@@ -1,0 +1,23 @@
+databaseChangeLog:
+  - changeSet:
+      id: 003-unique-email
+      author: zeker
+      changes:
+        - createIndex:
+            indexName: uk_users_email
+            tableName: users
+            unique: true
+            columns:
+              - column:
+                  name: email
+
+  - changeSet:
+      id: 004-password-history-user-index
+      author: zeker
+      changes:
+        - createIndex:
+            indexName: idx_password_history_user
+            tableName: password_history
+            columns:
+              - column:
+                  name: user_id

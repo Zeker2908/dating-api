@@ -8,8 +8,6 @@ import org.springframework.security.authentication.dao.DaoAuthenticationProvider
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import ru.zeker.authenticationservice.service.UserService;
-import ru.zeker.common.component.JwtUtils;
-import ru.zeker.common.config.JwtProperties;
 
 @RequiredArgsConstructor
 @Configuration

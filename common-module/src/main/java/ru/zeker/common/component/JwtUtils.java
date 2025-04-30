@@ -2,14 +2,17 @@ package ru.zeker.common.component;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.io.Decoders;
-import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import ru.zeker.common.config.JwtProperties;
 
 import java.security.Key;
+import java.security.KeyFactory;
+import java.security.NoSuchAlgorithmException;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.X509EncodedKeySpec;
+import java.util.Base64;
 import java.util.Date;
 import java.util.function.Function;
 
@@ -20,9 +23,22 @@ public class JwtUtils {
     private Key signingKey;
 
     @PostConstruct
-    public void init() {
-        // Инициализируем ключ один раз при старте сервиса
-        this.signingKey = Keys.hmacShaKeyFor(Decoders.BASE64.decode(jwtProperties.getSecret()));
+    public void init() throws NoSuchAlgorithmException, InvalidKeySpecException {
+        String key = jwtProperties.getPublicKey();
+        if (!key.isEmpty()) {
+            String publicKeyPEM = key
+                    .replace("-----BEGIN PUBLIC KEY-----", "")
+                    .replace("-----END PUBLIC KEY-----", "")
+                    .replaceAll("\\s+", "");
+
+            byte[] keyBytes = Base64.getDecoder().decode(publicKeyPEM);
+            X509EncodedKeySpec spec = new X509EncodedKeySpec(keyBytes);
+            KeyFactory kf = KeyFactory.getInstance("RSA");
+            this.signingKey = kf.generatePublic(spec);
+        }
+        else {
+            throw new IllegalStateException("Открытый ключ RSA не задан");
+        }
     }
 
     public Claims extractAllClaims(String token){
