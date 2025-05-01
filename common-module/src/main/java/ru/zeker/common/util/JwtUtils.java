@@ -23,9 +23,12 @@ public class JwtUtils {
     private Key signingKey;
 
     @PostConstruct
-    public void init() throws NoSuchAlgorithmException, InvalidKeySpecException {
-        String key = jwtProperties.getPublicKey();
-        if (!key.isEmpty()) {
+    public void init() {
+        try {
+            String key = jwtProperties.getPublicKey();
+            if (key.isEmpty()) {
+                throw new IllegalStateException("Открытый ключ не задан");
+            }
             String publicKeyPEM = key
                     .replace("-----BEGIN PUBLIC KEY-----", "")
                     .replace("-----END PUBLIC KEY-----", "")
@@ -33,11 +36,14 @@ public class JwtUtils {
 
             byte[] keyBytes = Base64.getDecoder().decode(publicKeyPEM);
             X509EncodedKeySpec spec = new X509EncodedKeySpec(keyBytes);
-            KeyFactory kf = KeyFactory.getInstance("RSA");
+            KeyFactory kf = KeyFactory.getInstance("EC");
             this.signingKey = kf.generatePublic(spec);
-        }
-        else {
-            throw new IllegalStateException("Открытый ключ RSA не задан");
+        }catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("Алгоритм EC не поддерживается", e);
+        } catch (InvalidKeySpecException e) {
+            throw new IllegalStateException("Некорректный формат ключа", e);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalStateException("Ошибка декодирования Base64", e);
         }
     }
 

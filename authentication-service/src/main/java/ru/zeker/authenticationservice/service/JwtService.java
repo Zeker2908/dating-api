@@ -14,6 +14,7 @@ import ru.zeker.common.util.JwtUtils;
 import java.security.Key;
 import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
+import java.security.interfaces.ECPrivateKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.*;
@@ -28,29 +29,36 @@ public class JwtService {
     private Key privateKey;
 
     @PostConstruct
-    public void init() throws NoSuchAlgorithmException, InvalidKeySpecException {
-        String key = jwtProperties.getPrivateKey();
-        if (!key.isEmpty()) {
+    public void init() {
+        try {
+            String key = jwtProperties.getPrivateKey();
+            if (key.isEmpty()) {
+                throw new IllegalStateException("Приватный ключ не задан");
+            }
             String privateKeyPEM = key
                     .replace("-----BEGIN PRIVATE KEY-----", "")
                     .replace("-----END PRIVATE KEY-----", "")
-                    .replaceAll("\\s+", "");
+                    .replaceAll("\\s", "");
+
             byte[] keyBytes = Base64.getDecoder().decode(privateKeyPEM);
             PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(keyBytes);
-            KeyFactory kf = KeyFactory.getInstance("RSA");
+            KeyFactory kf = KeyFactory.getInstance("EC");
             this.privateKey = kf.generatePrivate(spec);
-        }else {
-            throw new IllegalStateException("Приватный ключ RSA не задан");
+            if (!(this.privateKey instanceof ECPrivateKey)) {
+                throw new IllegalStateException("Ключ не является EC приватным ключом");
+            }
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("EC алгоритм не поддерживается", e);
+        } catch (InvalidKeySpecException e) {
+            throw new IllegalStateException("Неверный формат ключа", e);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalStateException("Ошибка декодирования Base64", e);
         }
     }
-
     public UUID extractUserId(String token){
-       Optional<String> id = Optional.ofNullable(jwtUtils.extractClaim(token, claims -> claims.get("id", String.class)));
-        try {
-            return id.map(UUID::fromString).orElseThrow(() -> new InvalidTokenException("Некорректный идентификатор пользователя"));
-        } catch (IllegalArgumentException e) {
-            throw new InvalidTokenException("Некорректный идентификатор пользователя");
-        }
+        String id = jwtUtils.extractClaim(token, claims -> claims.get("id", String.class));
+        if (id == null) throw new InvalidTokenException("Некорректный идентификатор пользователя");
+        return UUID.fromString(id);
     }
 
     public Long extractVersion(String token){
@@ -98,7 +106,7 @@ public class JwtService {
                 .setSubject(userDetails.getUsername())
                 .setIssuedAt(new Date(currentTimeMillis))
                 .setExpiration(new Date(currentTimeMillis+expiration))
-                .signWith(privateKey,SignatureAlgorithm.RS256)
+                .signWith(privateKey,SignatureAlgorithm.ES256)
                 .compact();
     }
 

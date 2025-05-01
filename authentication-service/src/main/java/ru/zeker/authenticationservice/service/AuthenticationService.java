@@ -77,9 +77,7 @@ public class AuthenticationService {
                 )
         );
 
-        if (!(authentication.getPrincipal() instanceof User user)) {
-            throw new IllegalStateException("Некорректный объект пользователя");
-        }
+        User user = (User) authentication.getPrincipal();
 
         log.debug("Аутентификация успешна для пользователя: {}", email);
         
