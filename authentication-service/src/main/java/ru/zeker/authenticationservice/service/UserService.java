@@ -40,23 +40,27 @@ public class UserService {
 
     @Transactional
     public User create(@NotNull User user) {
+        if (user.getPassword() == null && user.getOAuthId() == null) {
+            throw new IllegalArgumentException("User должен иметь либо пароль, либо OAuthId");
+        }
+
         if (repository.existsByEmail(user.getEmail())) {
+            log.warn("Попытка создания дубликата пользователя: {}", user.getEmail());
             throw new UserAlreadyExistsException("Пользователь с email " + user.getEmail() + " уже существует");
         }
 
-       if(user.getPassword() != null) {
+        if (user.getPassword() != null) {
            String rawPassword = user.getPassword();
            user.setPassword(passwordEncoder.encode(rawPassword));
            repository.save(user);
            passwordHistoryService.savePassword(user, rawPassword);
            log.info("Создан новый пользователь с ID: {}", user.getId());
            return user;
-       } else if (user.getOAuthId() != null) {
+       } else {
            log.info("Создан новый пользователь с ID: {}", user.getId());
            return repository.save(user);
-       } else {
-           throw new IllegalArgumentException("User должен иметь либо пароль, либо OAuthId");
        }
+
     }
 
     @Transactional

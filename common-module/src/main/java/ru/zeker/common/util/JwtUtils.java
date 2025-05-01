@@ -1,4 +1,4 @@
-package ru.zeker.common.component;
+package ru.zeker.common.util;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;

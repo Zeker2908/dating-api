@@ -7,10 +7,8 @@ import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
-import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.authentication.DisabledException;
-import org.springframework.security.authentication.LockedException;
+import org.springframework.security.authentication.*;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingRequestCookieException;
@@ -50,10 +48,10 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(status).body(errorResponse);
     }
 
-    @ExceptionHandler(BadCredentialsException.class)
-    public ResponseEntity<Map<String, Object>> handleBadCredentialsException(BadCredentialsException ex) {
+   @ExceptionHandler(AuthenticationException.class)
+   public ResponseEntity<Map<String, Object>> handleAuthenticationException(AuthenticationException ex){
         return buildErrorResponse(HttpStatus.BAD_REQUEST, ex.getMessage());
-    }
+   }
 
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<Map<String, Object>> handleAccessDeniedException(AccessDeniedException ex) {
@@ -70,10 +68,6 @@ public class GlobalExceptionHandler {
         return buildErrorResponse(HttpStatus.UNAUTHORIZED, "Недействительный токен");
     }
 
-    @ExceptionHandler(DisabledException.class)
-    public ResponseEntity<Map<String, Object>> handleDisabledException(DisabledException ex) {
-        return buildErrorResponse(HttpStatus.UNAUTHORIZED, "Пользователь отключен");
-    }
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, Object>> handleIllegalArgumentException(IllegalArgumentException ex) {
@@ -90,14 +84,10 @@ public class GlobalExceptionHandler {
         return buildErrorResponse(HttpStatus.BAD_REQUEST, ex.getMessage());
     }
 
-    @ExceptionHandler(AuthenticationCredentialsNotFoundException.class)
-    public ResponseEntity<Map<String, Object>> handleAuthenticationCredentialsNotFoundException(AuthenticationCredentialsNotFoundException ex) {
-        return buildErrorResponse(HttpStatus.BAD_REQUEST, ex.getMessage());
-    }
 
     @ExceptionHandler(LockedException.class)
     public ResponseEntity<Map<String, Object>> handleLockedException(LockedException ex) {
-        return buildErrorResponse(HttpStatus.FORBIDDEN, "Аккаунт пользователя заблокирован");
+        return buildErrorResponse(HttpStatus.LOCKED, "Аккаунт пользователя заблокирован");
     }
 
     @ExceptionHandler(ConstraintViolationException.class)

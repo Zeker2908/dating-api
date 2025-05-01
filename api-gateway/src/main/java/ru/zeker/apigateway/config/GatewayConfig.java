@@ -3,7 +3,7 @@ package ru.zeker.apigateway.config;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import ru.zeker.common.component.JwtUtils;
+import ru.zeker.common.util.JwtUtils;
 import ru.zeker.common.config.JwtProperties;
 
 @Configuration

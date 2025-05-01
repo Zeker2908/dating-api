@@ -1,4 +1,4 @@
-package ru.zeker.common.component;
+package ru.zeker.common.util;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;

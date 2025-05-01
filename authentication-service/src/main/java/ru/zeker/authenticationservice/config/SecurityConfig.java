@@ -1,7 +1,6 @@
 package ru.zeker.authenticationservice.config;
 
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -12,7 +11,6 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserService;
 import org.springframework.security.oauth2.core.user.OAuth2User;
@@ -25,10 +23,8 @@ import ru.zeker.common.config.JwtProperties;
 @EnableWebSecurity
 @RequiredArgsConstructor
 @EnableConfigurationProperties(JwtProperties.class)
-@Slf4j
 public class SecurityConfig {
     private final OAuth2SuccessHandler oAuth2SuccessHandler;
-    private final UserDetailsService userDetailsService;
     private final AuthenticationProvider authenticationProvider;
     private final OAuth2UserService<OAuth2UserRequest, OAuth2User> oAuth2UserService;
 
@@ -56,44 +52,19 @@ public class SecurityConfig {
     @Bean
     @Order(1)
     public SecurityFilterChain oauthEndpointsFilterChain(HttpSecurity http) throws Exception {
-        log.info("Настройка цепочки фильтров безопасности конечных точек OAuth2");
         http
                 .securityMatcher("/oauth2/**", "/login/oauth2/**")
+                .cors(AbstractHttpConfigurer::disable)
                 .csrf(AbstractHttpConfigurer::disable)
-                .authorizeHttpRequests(auth -> {
-                    log.debug("Настройка разрешения для OAuth2 путей");
-                    auth.anyRequest().permitAll();
-                })
-                .oauth2Login(oauth -> {
-                    log.debug("Настройка конфигурации входа OAuth2");
-                    oauth
-                        // Используем стандартные пути для OAuth2
-                        .authorizationEndpoint(endpoint -> {
-                            log.debug("Настройка authorizationEndpoint: baseUri={}", "/oauth2/authorization");
-                            endpoint.baseUri("/oauth2/authorization");
-                        })
-                        .redirectionEndpoint(endpoint -> {
-                            log.debug("Настройка redirectionEndpoint: baseUri={}", "/login/oauth2/code/*");
-                            endpoint.baseUri("/login/oauth2/code/*");
-                        })
-                        .failureUrl("/oauth2/failure")
-                        .defaultSuccessUrl("/oauth2/success")
-                        .userInfoEndpoint(userInfo -> {
-                            log.debug("Настройка OAuth2 userInfoEndpoint с помощью пользовательского OAuth2UserService");
-                            userInfo.userService(oAuth2UserService);
-                        })
-                        .successHandler(oAuth2SuccessHandler)
-                        .failureHandler((request, response, exception) -> {
-                            log.error("Ошибка при OAuth2 аутентификации: {}", exception.getMessage(), exception);
-                            response.sendRedirect("/oauth2/failure");
-                        });
-                    log.debug("Настройка входа OAuth2 завершена");
-                })
-                .sessionManagement(session -> {
-                    log.debug("Настройка управления сессиями для OAuth2");
-                    session.sessionCreationPolicy(SessionCreationPolicy.ALWAYS);
-                });
-        log.info("Цепочка фильтров безопасности конечных точек OAuth2 успешно настроена");
+                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
+                .oauth2Login(oauth -> oauth
+                    // Используем стандартные пути для OAuth2
+                    .authorizationEndpoint(endpoint -> endpoint.baseUri("/oauth2/authorization"))
+                    .redirectionEndpoint(endpoint -> endpoint.baseUri("/login/oauth2/code/*"))
+                    .userInfoEndpoint(userInfo -> userInfo.userService(oAuth2UserService))
+                    .successHandler(oAuth2SuccessHandler)
+                    .failureHandler((request, response, exception) -> response.sendRedirect("/oauth2/failure")))
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED));
         return http.build();
     }
 
@@ -113,9 +84,9 @@ public class SecurityConfig {
     public SecurityFilterChain authEndpointsFilterChain(HttpSecurity http) throws Exception {
         http
                 .securityMatcher("/auth/**")
+                .cors(AbstractHttpConfigurer::disable)
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
-                .userDetailsService(userDetailsService)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authenticationProvider(authenticationProvider);
         return http.build();
@@ -142,6 +113,7 @@ public class SecurityConfig {
         http
                 .authorizeHttpRequests(auth -> auth
                         .anyRequest().permitAll())
+                .cors(AbstractHttpConfigurer::disable)
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
         return http.build();

@@ -74,8 +74,26 @@ public class AuthenticationController {
         log.info("Запрос на подтверждение email");
         authenticationService.confirmEmail(request);
 
-        return ResponseEntity.noContent().build();
-    } //TODO: добавить повторную отправку
+        return ResponseEntity.ok().build();
+    }
+
+    /**
+     * Обрабатывает запрос на повторную отправку подтверждения email.
+     *
+     * <p>Этот метод принимает POST-запрос с телом, содержащим объект {@link ResendVerificationRequest},
+     * который содержит информацию, необходимую для повторной отправки подтверждения email.
+     * Метод вызывает сервис аутентификации для выполнения этой операции и возвращает ответ с кодом состояния 202 Accepted.</p>
+     *
+     * @param request объект запроса, содержащий информацию для повторной отправки подтверждения email.
+     * @return {@code ResponseEntity<Void>} с кодом состояния 202 Accepted, указывающим, что запрос был принят для обработки.
+     */
+    @PostMapping("/email-confirmation/resend")
+    public ResponseEntity<Void> resendConfirmationEmail(@RequestBody @Valid ResendVerificationRequest request) {
+        log.info("Запрос на повторную отправку подтверждения email");
+        authenticationService.resendVerificationEmail(request);
+
+        return ResponseEntity.accepted().build();
+    }
 
     /**
      * Запрос на восстановление пароля
@@ -88,7 +106,7 @@ public class AuthenticationController {
         log.info("Запрос на восстановление пароля: {}", request.getEmail());
         authenticationService.forgotPassword(request);
 
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.accepted().build();
     }
 
     /**
@@ -102,7 +120,7 @@ public class AuthenticationController {
         log.info("Запрос на сброс пароля");
         authenticationService.resetPassword(request);
         //TODO:Придумать как отозвать все рефреш токены
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok().build();
     }
 
     /**

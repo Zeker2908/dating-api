@@ -3,20 +3,21 @@ package ru.zeker.authenticationservice.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import ru.zeker.authenticationservice.domain.dto.Tokens;
 import ru.zeker.authenticationservice.domain.dto.request.*;
 import ru.zeker.authenticationservice.domain.mapper.UserMapper;
-import ru.zeker.common.component.JwtUtils;
-import ru.zeker.common.dto.kafka.EmailEvent;
-import ru.zeker.authenticationservice.domain.dto.*;
 import ru.zeker.authenticationservice.domain.model.entity.RefreshToken;
 import ru.zeker.authenticationservice.domain.model.entity.User;
 import ru.zeker.authenticationservice.exception.InvalidTokenException;
+import ru.zeker.authenticationservice.exception.TooManyRequestsException;
 import ru.zeker.authenticationservice.exception.UserAlreadyEnableException;
+import ru.zeker.common.dto.kafka.EmailEvent;
 import ru.zeker.common.dto.kafka.EmailEventType;
+import ru.zeker.common.util.JwtUtils;
 
 import java.util.UUID;
 
@@ -36,6 +37,7 @@ public class AuthenticationService {
     private final RefreshTokenService refreshTokenService;
     private final KafkaProducer kafkaProducer;
     private final PasswordHistoryService passwordHistoryService;
+    private final VerificationCooldownService verificationCooldownService;
 
     /**
      * Регистрация нового пользователя и отправка сообщения для верификации email
@@ -43,24 +45,19 @@ public class AuthenticationService {
      * @param request данные нового пользователя
      */
     public void register(RegisterRequest request) {
-        log.info("Регистрация нового пользователя с email: {}", request.getEmail());
+        String email = request.getEmail().toLowerCase();
+        log.info("Регистрация нового пользователя с email: {}", email);
 
         User user = userMapper.toEntity(request);
                 
         userService.create(user);
-        log.debug("Пользователь создан в базе данных: {}", user.getEmail());
+        log.debug("Пользователь создан в базе данных: {}", email);
         
         String token = jwtService.generateAccessToken(user);
-        EmailEvent userRegisteredEvent = EmailEvent.builder()
-                .type(EmailEventType.EMAIL_VERIFICATION)
-                .id(UUID.randomUUID().toString())
-                .email(user.getEmail())
-                .token(token)
-                .firstName(user.getFirstName())
-                .build();
+        EmailEvent userRegisteredEvent = createEmailEvent(user, EmailEventType.EMAIL_VERIFICATION, token);
                 
         kafkaProducer.sendEmailEvent(userRegisteredEvent);
-        log.info("Отправлено сообщение для верификации email: {}", user.getEmail());
+        log.info("Отправлено сообщение для верификации email: {}", email);
     }
 
     /**
@@ -70,27 +67,26 @@ public class AuthenticationService {
      * @return объект с JWT и refresh токенами
      */
     public Tokens login(LoginRequest request) {
-        log.info("Попытка входа пользователя: {}", request.getEmail());
-        
-        User user = userService.findByEmail(request.getEmail());
+        String email = request.getEmail().toLowerCase();
+        log.info("Попытка входа пользователя: {}", email);
 
-        try {
-            authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(
-                            request.getEmail().toLowerCase(),
-                            request.getPassword()
-                    )
-            );
-        }catch (BadCredentialsException ex){
-            throw new BadCredentialsException("Неверный логин или пароль");
+        Authentication authentication = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(
+                        email,
+                        request.getPassword()
+                )
+        );
+
+        if (!(authentication.getPrincipal() instanceof User user)) {
+            throw new IllegalStateException("Некорректный объект пользователя");
         }
-        
-        log.debug("Аутентификация успешна для пользователя: {}", user.getEmail());
+
+        log.debug("Аутентификация успешна для пользователя: {}", email);
         
         String jwtToken = jwtService.generateAccessToken(user);
         String refreshToken = refreshTokenService.createRefreshToken(user);
         
-        log.info("Пользователь успешно вошел в систему: {}", user.getEmail());
+        log.info("Пользователь успешно вошел в систему: {}", email);
         
         return Tokens.builder()
                 .token(jwtToken)
@@ -157,21 +153,16 @@ public class AuthenticationService {
      * @param request запрос с email пользователя
      */
     public void forgotPassword(ForgotPasswordRequest request) {
-        log.info("Запрос на восстановление пароля для: {}", request.getEmail());
+        String email = request.getEmail().toLowerCase();
+        log.info("Запрос на восстановление пароля для: {}", email);
         
-        User user = userService.findByEmail(request.getEmail());
-        String token = jwtService.generateOnceVerificationToken(user);
+        User user = userService.findByEmail(email);
+        String token = jwtService.generateEmailToken(user);
         
-        EmailEvent event = EmailEvent.builder()
-                .type(EmailEventType.FORGOT_PASSWORD)
-                .id(UUID.randomUUID().toString())
-                .email(user.getEmail())
-                .token(token)
-                .firstName(user.getFirstName())
-                .build();
+        EmailEvent event = createEmailEvent(user, EmailEventType.FORGOT_PASSWORD, token);
 
         kafkaProducer.sendEmailEvent(event);
-        log.info("Письмо с инструкцией для восстановления пароля отправлено на email: {}", user.getEmail());
+        log.info("Письмо с инструкцией для восстановления пароля отправлено на email: {}", email);
     }
 
     /**
@@ -212,4 +203,47 @@ public class AuthenticationService {
         log.info("Пароль успешно сброшен для пользователя: {}", user.getEmail());
 
     }
+
+    /**
+     * Повторно отправляет письмо с подтверждением указанному пользователю, если он еще не проверен
+     * и если период восстановления истек.
+     * Запрос @param содержит адрес электронной почты для повторной отправки подтверждения
+     * @throws UserAlreadyEnableException, если пользователь уже проверен
+     * @throws TooManyRequestsException, если письмо было запрошено слишком недавно
+     */
+    public void resendVerificationEmail(ResendVerificationRequest request) {
+        log.info("Запрос на повторную отправку письма с подтверждением");
+        String email = request.getEmail().toLowerCase();
+        User user = userService.findByEmail(email);
+
+        if (user.isEnabled()){
+            log.warn("Пользователь уже подтвержден: {}", email);
+            throw new UserAlreadyEnableException();
+        }
+
+        if(!verificationCooldownService.canResendEmail(email)) {
+            log.warn("Попытка повторного отправить письмо с подтверждением слишком часто: {}", email);
+            throw new TooManyRequestsException();
+        }
+
+        String token = jwtService.generateEmailToken(user);
+        EmailEvent event = createEmailEvent(user, EmailEventType.EMAIL_VERIFICATION, token);
+
+        kafkaProducer.sendEmailEvent(event);
+        verificationCooldownService.updateCooldown(email);
+        log.info("Письмо с подтверждением отправлено на email: {}", email);
+
+    }
+
+    private EmailEvent createEmailEvent(User user, EmailEventType type, String token) {
+        return EmailEvent.builder()
+                .type(type)
+                .id(UUID.randomUUID().toString())
+                .email(user.getEmail())
+                .token(token)
+                .firstName(user.getFirstName())
+                .build();
+    }
+
+
 }

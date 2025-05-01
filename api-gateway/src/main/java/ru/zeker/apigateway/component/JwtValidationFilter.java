@@ -16,7 +16,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 import ru.zeker.apigateway.exception.AuthException;
-import ru.zeker.common.component.JwtUtils;
+import ru.zeker.common.util.JwtUtils;
 
 import java.util.Optional;
 

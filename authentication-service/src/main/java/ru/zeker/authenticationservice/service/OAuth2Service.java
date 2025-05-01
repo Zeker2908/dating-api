@@ -1,15 +1,13 @@
 package ru.zeker.authenticationservice.service;
 
-import io.netty.util.internal.StringUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang.StringUtils;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 import ru.zeker.authenticationservice.domain.dto.OAuth2UserInfo;
-import ru.zeker.authenticationservice.domain.model.enums.OAuth2Provider;
-import ru.zeker.authenticationservice.domain.model.enums.Role;
+import ru.zeker.authenticationservice.domain.mapper.UserMapper;
 import ru.zeker.authenticationservice.domain.model.entity.User;
+import ru.zeker.authenticationservice.domain.model.enums.OAuth2Provider;
 
 import java.util.Map;
 
@@ -18,6 +16,7 @@ import java.util.Map;
 @Slf4j
 public class OAuth2Service {
     private final UserService userService;
+    private final UserMapper userMapper;
     /**
      * Регистрирует нового пользователя с помощью предоставленных строк OAuth2User и OAuth2Provider.
      *
@@ -38,24 +37,8 @@ public class OAuth2Service {
 
         Map<String, Object> attributes = oAuth2User.getAttributes();
         OAuth2UserInfo userInfo = oAuth2Provider.extractUserInfo(attributes);
-        String email = userInfo.getEmail().toLowerCase();
-        String firstName = StringUtils.capitalize(userInfo.getFirstName());
-        String lastName = StringUtils.capitalize(userInfo.getLastName());
-        String oAuthId = userInfo.getOAuthId();
         
-        log.debug("Атрибуты регистрации OAuth2: email={}, firstName={}, lastName={}, oAuthId={}, availableAttrs={}",
-                email, firstName, lastName, oAuthId, attributes.keySet());
-        
-        User user = User.builder()
-                .email(email)
-                .firstName(firstName)
-                .lastName(lastName)
-                .role(Role.USER)
-                .provider(oAuth2Provider)
-                .oAuthId(oAuthId)
-                .enabled(true)
-                .locked(false)
-                .build();
+        User user = userMapper.toOAuthEntity(userInfo, oAuth2Provider);
         
         log.debug("Создан новый объект пользователя для регистрации OAuth2: {}", user);
         
@@ -64,7 +47,7 @@ public class OAuth2Service {
             log.info("Успешно зарегистрированный пользователь OAuth2: id={}, email={}", createdUser.getId(), createdUser.getEmail());
             return createdUser;
         } catch (Exception e) {
-            log.error("Не удалось зарегистрировать пользователя OAuth2 с адресом электронной почты.={}: {}", email, e.getMessage(), e);
+            log.error("Не удалось зарегистрировать пользователя OAuth2 с адресом электронной почты.={}: {}", user.getEmail(), e.getMessage(), e);
             throw e;
         }
     }

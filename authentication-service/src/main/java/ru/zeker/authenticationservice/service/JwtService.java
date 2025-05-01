@@ -4,16 +4,13 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.Resource;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import ru.zeker.authenticationservice.domain.model.entity.User;
 import ru.zeker.authenticationservice.exception.InvalidTokenException;
-import ru.zeker.common.component.JwtUtils;
 import ru.zeker.common.config.JwtProperties;
+import ru.zeker.common.util.JwtUtils;
 
-import java.io.IOException;
 import java.security.Key;
 import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
@@ -28,15 +25,11 @@ public class JwtService {
     private final JwtUtils jwtUtils;
     private final JwtProperties jwtProperties;
 
-
-    @Value("${jwt.private-key-path}")
-    private Resource privateKeyResource;
-
     private Key privateKey;
 
     @PostConstruct
-    public void init() throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
-        String key = new String(privateKeyResource.getInputStream().readAllBytes());
+    public void init() throws NoSuchAlgorithmException, InvalidKeySpecException {
+        String key = jwtProperties.getPrivateKey();
         if (!key.isEmpty()) {
             String privateKeyPEM = key
                     .replace("-----BEGIN PRIVATE KEY-----", "")
@@ -84,7 +77,7 @@ public class JwtService {
         return generateToken(userDetails,claims,jwtProperties.getRefresh().getExpiration());
     }
 
-    public String generateOnceVerificationToken(UserDetails userDetails){
+    public String generateEmailToken(UserDetails userDetails){
         Map<String,Object> claims = new HashMap<>();
         if(userDetails instanceof User customUserDetails){
             claims.put("id", customUserDetails.getId());

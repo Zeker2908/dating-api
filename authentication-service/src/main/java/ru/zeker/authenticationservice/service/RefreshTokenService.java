@@ -10,7 +10,7 @@ import ru.zeker.authenticationservice.exception.TokenExpiredException;
 import ru.zeker.authenticationservice.exception.TokenNotFoundException;
 import ru.zeker.authenticationservice.exception.UserNotFoundException;
 import ru.zeker.authenticationservice.repository.RefreshTokenRepository;
-import ru.zeker.common.component.JwtUtils;
+import ru.zeker.common.util.JwtUtils;
 
 import java.util.Date;
 import java.util.UUID;

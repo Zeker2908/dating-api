@@ -55,4 +55,4 @@ logging:
     eureka: INFO
     ru.zeker: DEBUG
 jwt:
-  private-key-path: classpath:private_key.pem
+  private-key: ${PRIVATE_KEY}

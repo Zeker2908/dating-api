@@ -10,11 +10,8 @@ spring:
     gateway:
       discovery:
         locator:
-          cache-ttl: 2000
-      loadbalancer:
-        cache:
-          ttl: 2s
-
+          enabled: true
+          lower-case-service-id: true
       routes:
         # Авторизация пользователя (jwt/auth)
         - id: authentication-service-auth
@@ -53,7 +50,6 @@ spring:
             - RewritePath=/login/oauth2/code/(?<seg>.*), /login/oauth2/code/${seg}
           metadata:
             auth-required: false
-
       globalcors:
         cors-configurations:
           '[/**]':
