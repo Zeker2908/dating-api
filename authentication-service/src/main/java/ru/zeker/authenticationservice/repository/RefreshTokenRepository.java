@@ -6,10 +6,11 @@ import ru.zeker.authenticationservice.domain.model.entity.RefreshToken;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 @Repository
 public interface RefreshTokenRepository extends CrudRepository<RefreshToken, String> {
     Optional<RefreshToken> findByToken(String token);
-    Optional<List<RefreshToken>> findAllByUserId(UUID id);
+    Optional<Set<RefreshToken>> findAllByUserId(UUID id);
 }

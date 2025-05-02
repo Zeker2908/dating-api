@@ -13,6 +13,7 @@ import ru.zeker.authenticationservice.repository.RefreshTokenRepository;
 import ru.zeker.common.config.JwtProperties;
 
 import java.util.Date;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -131,7 +132,7 @@ public class RefreshTokenService {
         UUID userId = jwtService.extractUserId(token);
         log.info("Отзыв всех refresh-токенов для пользователя с ID: {}", userId);
         
-        var tokens = refreshTokenRepository.findAllByUserId(userId).orElseThrow(() -> {
+        Set<RefreshToken> tokens = refreshTokenRepository.findAllByUserId(userId).orElseThrow(() -> {
             log.warn("Пользователь с ID: {} не имеет refresh-токенов", userId);
             return new UserNotFoundException("Пользователь с ID: " + userId + " не имеет refresh-токенов");
         });

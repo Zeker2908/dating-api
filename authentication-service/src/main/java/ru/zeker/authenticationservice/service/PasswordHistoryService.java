@@ -54,8 +54,8 @@ public class PasswordHistoryService {
             removeOldestPasswords(existingPasswords, existingPasswords.size() - maxPasswordHistoryCount + 1);
         }
     }
-
-    private void removeOldestPasswords(Set<PasswordHistory> passwordHistories, int countToRemove) {
+    @Transactional
+    protected void removeOldestPasswords(Set<PasswordHistory> passwordHistories, int countToRemove) {
         Set<PasswordHistory> passwordsToRemove = passwordHistories.stream()
                 .sorted(Comparator.comparing(PasswordHistory::getCreatedAt))
                 .limit(countToRemove)

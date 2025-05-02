@@ -12,8 +12,9 @@ import org.springframework.data.redis.core.index.Indexed;
 import java.io.Serializable;
 import java.util.Date;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
-@RedisHash("RefreshToken")
+@RedisHash("refresh_tokens")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
@@ -28,7 +29,7 @@ public class RefreshToken implements Serializable {
 
     private Date expiryDate;
 
-    @TimeToLive
+    @TimeToLive(unit = TimeUnit.SECONDS)
     private Long ttl;
 }
 
