@@ -18,9 +18,9 @@ import java.util.Objects;
 @Table(indexes = @Index(name = "idx_password_history_user", columnList = "user_id"))
 public class PasswordHistory extends BaseEntity {
 
-    @JoinColumn(name = "user_id", nullable = false)
     @ManyToOne
-    private User user;
+    @JoinColumn(name = "local_auth_id", nullable = false)
+    private LocalAuth localAuth;
 
     @Column(nullable = false)
     private String password;

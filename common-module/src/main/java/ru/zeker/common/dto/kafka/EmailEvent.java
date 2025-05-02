@@ -23,6 +23,4 @@ public class EmailEvent {
     @NotBlank
     private String token;
 
-    @NotBlank
-    private String firstName;
 }

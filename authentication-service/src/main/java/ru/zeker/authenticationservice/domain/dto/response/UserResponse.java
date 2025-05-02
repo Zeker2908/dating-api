@@ -15,7 +15,7 @@ import java.util.UUID;
 public class UserResponse {
     private UUID id;
     private String email;
-    private String firstName;
-    private String lastName;
     private Role role;
+    boolean isLocalUser;
+    boolean isOAuthUser;
 }

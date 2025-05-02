@@ -123,7 +123,6 @@ public class EmailService {
     ) {
         // Создание контекста для шаблона
         Map<String, Object> templateContext = new HashMap<>();
-        templateContext.put("firstName", event.getFirstName());
         templateContext.put("verificationURL", actionUrl);
         templateContext.put("supportEmail", from);
         templateContext.put("currentYear", Year.now().getValue());
@@ -135,7 +134,6 @@ public class EmailService {
                 .to(event.getEmail())
                 .subject(subject)
                 .emailLanguage("ru")
-                .displayName(event.getFirstName())
                 .templateLocation(templateLocation)
                 .templateContext(templateContext)
                 .build();

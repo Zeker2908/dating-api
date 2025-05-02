@@ -1,10 +1,10 @@
 databaseChangeLog:
   - changeSet:
-      id: 003-unique-email
+      id: 005-create-users-email-index
       author: zeker
       changes:
         - createIndex:
-            indexName: uk_users_email
+            indexName: idx_users_email_unique
             tableName: users
             unique: true
             columns:
@@ -12,7 +12,21 @@ databaseChangeLog:
                   name: email
 
   - changeSet:
-      id: 004-password-history-user-index
+      id: 006-create-oauth-provider-id-index
+      author: zeker
+      changes:
+        - createIndex:
+            indexName: idx_oauth_auth_provider_id
+            tableName: oauth_auth
+            unique: true
+            columns:
+              - column:
+                  name: provider
+              - column:
+                  name: o_auth_id
+
+  - changeSet:
+      id: 007-create-password-history-user-index
       author: zeker
       changes:
         - createIndex:
@@ -20,4 +34,4 @@ databaseChangeLog:
             tableName: password_history
             columns:
               - column:
-                  name: user_id
+                  name: local_auth_id

@@ -25,10 +25,4 @@ public class RegisterRequest {
     @Size(min = 8, max = 255, message = "Длина пароля должна быть от 8 до 255 символов")
     private String password;
 
-    @Size(min = 1, max = 25, message = "Длина имени не должна превышать 25 символов")
-    @NotBlank(message = "Имя не должно быть пустым.")
-    private String firstName;
-
-    @Size(min = 1, max = 25, message = "Длина фамилии не должна превышать 25 символов")
-    private String lastName;
 }

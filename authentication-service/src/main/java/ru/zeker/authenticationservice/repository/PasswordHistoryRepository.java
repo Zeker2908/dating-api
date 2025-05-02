@@ -10,6 +10,6 @@ import java.util.UUID;
 
 @Repository
 public interface PasswordHistoryRepository extends JpaRepository<PasswordHistory, UUID> {
-    Set<PasswordHistory> findAllByUserId(UUID userId);
-    Boolean existsByUserIdAndPassword(UUID userId, String password);
+    Set<PasswordHistory> findAllByLocalAuthId(UUID userId);
+    Boolean existsByLocalAuthIdAndPassword(UUID userId, String password);
 }

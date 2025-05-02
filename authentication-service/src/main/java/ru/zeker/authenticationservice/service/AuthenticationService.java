@@ -138,7 +138,7 @@ public class AuthenticationService {
             throw new UserAlreadyEnableException();
         }
         
-        user.setEnabled(true);
+        user.getLocalAuth().setEnabled(true);
         userService.update(user);
         
         log.info("Email успешно подтвержден для пользователя: {}", user.getEmail());
@@ -193,7 +193,7 @@ public class AuthenticationService {
 
         passwordHistoryService.savePassword(user, password);
 
-        user.setPassword(passwordEncoder.encode(password));
+        user.getLocalAuth().setPassword(passwordEncoder.encode(password));
         userService.update(user);
 
         refreshTokenService.revokeAllUserTokens(token);
@@ -239,7 +239,6 @@ public class AuthenticationService {
                 .id(UUID.randomUUID().toString())
                 .email(user.getEmail())
                 .token(token)
-                .firstName(user.getFirstName())
                 .build();
     }
 

@@ -24,7 +24,7 @@ public class PasswordHistoryService {
     private int maxPasswordHistoryCount;
 
     public Set<PasswordHistory> findAllByUserId(UUID userId) {
-        return passwordHistoryRepository.findAllByUserId(userId);
+        return passwordHistoryRepository.findAllByLocalAuthId(userId);
     }
 
     @Transactional
@@ -44,7 +44,7 @@ public class PasswordHistoryService {
         
         // Создание новой записи истории
         PasswordHistory passwordHistory = PasswordHistory.builder()
-                .user(user)
+                .localAuth(user.getLocalAuth())
                 .password(passwordEncoder.encode(rawPassword))
                 .build();
         

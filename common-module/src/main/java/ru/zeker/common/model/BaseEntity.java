@@ -1,9 +1,6 @@
 package ru.zeker.common.model;
 
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.Id;
-import jakarta.persistence.MappedSuperclass;
-import jakarta.persistence.Version;
+import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
@@ -18,14 +15,18 @@ import java.util.UUID;
 public class BaseEntity {
     @Id
     @GeneratedValue(generator = "UUID")
+    @Column(nullable = false, updatable = false)
     private UUID id;
 
     @CreationTimestamp
+    @Column(nullable = false)
     private LocalDateTime createdAt;
 
     @UpdateTimestamp
+    @Column(nullable = false)
     private LocalDateTime updatedAt;
 
     @Version
+    @Column(nullable = false)
     private Long version;
 }

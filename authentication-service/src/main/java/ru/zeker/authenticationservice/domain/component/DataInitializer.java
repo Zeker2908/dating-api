@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
+import ru.zeker.authenticationservice.domain.model.entity.LocalAuth;
 import ru.zeker.authenticationservice.domain.model.entity.User;
 import ru.zeker.authenticationservice.domain.model.enums.Role;
 import ru.zeker.authenticationservice.service.UserService;
@@ -32,26 +33,31 @@ public class DataInitializer implements CommandLineRunner {
      * @param args аргументы командной строки
      */
     @Override
-    public void run(String... args){
+    public void run(String... args) {
         if (!userService.existsByEmail(adminName)) {
             final String password = generatePassword();
             log.info("Создание администратора с email: {}", adminName);
+
+            LocalAuth localAuth = LocalAuth.builder()
+                    .password(password)
+                    .enabled(true)
+                    .build();
+
             User admin = User.builder()
                     .email(adminName)
-                    .password(password)
+                    .localAuth(localAuth)
                     .role(Role.ADMIN)
-                    .firstName("Admin")
-                    .enabled(true)
-                    .locked(false)
                     .build();
+
+            localAuth.setUser(admin);
+
             userService.create(admin);
             log.info("Администратор создан.");
-            log.info(ANSI_GREEN + "Сгенерированный пароль: {}" + ANSI_RESET, password);
+            log.info(ANSI_GREEN + "Сгенерированный пароль: {}" + ANSI_RESET, password);
         } else {
             log.info("Пользователь администратора уже создан");
         }
     }
-
     /**
      * Генерирует случайный пароль из {@value #CHARACTERS} длиной {@value #STRING_LENGTH}.
      * @return сгенерированный пароль

@@ -1,12 +1,12 @@
 databaseChangeLog:
-  - changeSet:
-      id: 005-password-history-user-fk
-      author: zeker
-      changes:
-        - addForeignKeyConstraint:
-            baseTableName: password_history
-            baseColumnNames: user_id
-            constraintName: fk_password_history_user
-            referencedTableName: users
-            referencedColumnNames: id
-            onDelete: CASCADE
+      - changeSet:
+              id: 008-add-password-history-fk
+              author: zeker
+              changes:
+                    - addForeignKeyConstraint:
+                            baseTableName: password_history
+                            baseColumnNames: local_auth_id
+                            constraintName: fk_password_history_local_auth
+                            referencedTableName: local_auth
+                            referencedColumnNames: user_id
+                            onDelete: CASCADE

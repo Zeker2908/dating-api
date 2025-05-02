@@ -6,7 +6,6 @@ import org.hibernate.proxy.HibernateProxy;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
-import ru.zeker.authenticationservice.domain.model.enums.OAuth2Provider;
 import ru.zeker.authenticationservice.domain.model.enums.Role;
 import ru.zeker.common.model.BaseEntity;
 
@@ -29,31 +28,19 @@ public class User extends BaseEntity implements UserDetails {
     @Column(unique = true, nullable = false)
     private String email;
 
-    private String password;
-
-    @Column(nullable = false)
-    private String firstName;
-
-    private String lastName;
-
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Role role;
 
-    @Enumerated(EnumType.STRING)
-    private OAuth2Provider provider;
-
-    private String oAuthId;
-
     @Column(nullable = false)
-    private Boolean enabled;
+    @Builder.Default
+    private Boolean locked = false;
 
-    @Column(nullable = false)
-    private Boolean locked;
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private LocalAuth localAuth;
 
-    @OneToMany(mappedBy = "user", cascade = CascadeType.REMOVE)
-    @ToString.Exclude
-    private List<PasswordHistory> passwordHistory;
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private OAuthAuth oauthAuth;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
@@ -67,12 +54,12 @@ public class User extends BaseEntity implements UserDetails {
 
     @Override
     public String getPassword() {
-        return password;
+        return localAuth != null ? localAuth.getPassword() : null;
     }
 
     @Override
     public boolean isEnabled() {
-        return enabled;
+        return localAuth == null || localAuth.getEnabled();
     }
 
     @Override

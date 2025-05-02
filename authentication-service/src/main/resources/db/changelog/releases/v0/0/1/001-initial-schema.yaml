@@ -1,6 +1,6 @@
 databaseChangeLog:
   - changeSet:
-      id: 001-create-users
+      id: 001-create-users-table
       author: zeker
       changes:
         - createTable:
@@ -14,10 +14,12 @@ databaseChangeLog:
                     nullable: false
               - column:
                   name: created_at
-                  type: timestamp without time zone
+                  type: timestamp
+                  defaultValueComputed: "CURRENT_TIMESTAMP"
               - column:
                   name: updated_at
-                  type: timestamp without time zone
+                  type: timestamp
+                  defaultValueComputed: "CURRENT_TIMESTAMP"
               - column:
                   name: version
                   type: bigint
@@ -27,40 +29,74 @@ databaseChangeLog:
                   constraints:
                     nullable: false
               - column:
-                  name: password
-                  type: varchar(255)
-              - column:
-                  name: first_name
-                  type: varchar(255)
-                  constraints:
-                    nullable: false
-              - column:
-                  name: last_name
-                  type: varchar(255)
-              - column:
                   name: role
-                  type: varchar(255)
-                  constraints:
-                    nullable: false
-              - column:
-                  name: provider
-                  type: varchar(255)
-              - column:
-                  name: o_auth_id
-                  type: varchar(255)
-              - column:
-                  name: enabled
-                  type: boolean
+                  type: varchar(50)
                   constraints:
                     nullable: false
               - column:
                   name: locked
                   type: boolean
+                  defaultValueBoolean: false
                   constraints:
                     nullable: false
 
   - changeSet:
-      id: 002-create-password-history
+      id: 002-create-local-auth-table
+      author: zeker
+      changes:
+        - createTable:
+            tableName: local_auth
+            columns:
+              - column:
+                  name: user_id
+                  type: UUID
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+                    foreignKeyName: fk_local_auth_user
+                    references: users(id)
+                    deleteCascade: true
+              - column:
+                  name: password
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: enabled
+                  type: boolean
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+
+  - changeSet:
+      id: 003-create-oauth-auth-table
+      author: zeker
+      changes:
+        - createTable:
+            tableName: oauth_auth
+            columns:
+              - column:
+                  name: user_id
+                  type: UUID
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+                    foreignKeyName: fk_oauth_auth_user
+                    references: users(id)
+                    deleteCascade: true
+              - column:
+                  name: provider
+                  type: varchar(50)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: o_auth_id
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+
+  - changeSet:
+      id: 004-create-password-history-table
       author: zeker
       changes:
         - createTable:
@@ -74,15 +110,23 @@ databaseChangeLog:
                     nullable: false
               - column:
                   name: created_at
-                  type: timestamp without time zone
+                  type: timestamp
+                  defaultValueComputed: "CURRENT_TIMESTAMP"
+                  constraints:
+                    nullable: false
               - column:
                   name: updated_at
-                  type: timestamp without time zone
+                  type: timestamp
+                  defaultValueComputed: "CURRENT_TIMESTAMP"
+                  constraints:
+                    nullable: false
               - column:
                   name: version
                   type: bigint
+                  constraints:
+                    nullable: false
               - column:
-                  name: user_id
+                  name: local_auth_id
                   type: UUID
                   constraints:
                     nullable: false
