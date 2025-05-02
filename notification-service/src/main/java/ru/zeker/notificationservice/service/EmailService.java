@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.angus.mail.smtp.SMTPSenderFailedException;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.FileSystemResource;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.retry.annotation.Backoff;
@@ -33,8 +34,6 @@ import java.util.concurrent.CompletableFuture;
 public class EmailService {
     private final JavaMailSender javaMailSender;
     private final SpringTemplateEngine springTemplateEngine;
-
-    private static final String SENDER_DISPLAY_NAME = "Dating API";
 
     @Value("${spring.mail.username}")
     private String from;
@@ -74,12 +73,20 @@ public class EmailService {
                     emailContext.getTemplateLocation(), 
                     thymeleafContext
             );
+
+            String senderName = emailContext.getFromDisplayName() != null
+                    ? emailContext.getFromDisplayName()
+                    : "Dating API";
             
             // Настройка письма
-            messageHelper.setFrom(emailContext.getFrom(), SENDER_DISPLAY_NAME);
+            messageHelper.setFrom(emailContext.getFrom(), senderName);
             messageHelper.setTo(emailContext.getTo());
             messageHelper.setSubject(emailContext.getSubject());
             messageHelper.setText(htmlContent, true);
+            if (emailContext.getAttachment() != null) {
+                FileSystemResource file = new FileSystemResource(emailContext.getAttachment());
+                messageHelper.addAttachment(file.getFilename(), file);
+            }
             
             log.info("Отправка письма с темой '{}' на адрес: {}", 
                     emailContext.getSubject(), emailContext.getTo());

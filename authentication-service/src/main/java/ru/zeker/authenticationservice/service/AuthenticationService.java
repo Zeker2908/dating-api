@@ -53,7 +53,7 @@ public class AuthenticationService {
         userService.create(user);
         log.debug("Пользователь создан в базе данных: {}", email);
         
-        String token = jwtService.generateAccessToken(user);
+        String token = jwtService.generateEmailToken(user);
         EmailEvent userRegisteredEvent = createEmailEvent(user, EmailEventType.EMAIL_VERIFICATION, token);
                 
         kafkaProducer.sendEmailEvent(userRegisteredEvent);

@@ -1,9 +1,12 @@
 package ru.zeker.authenticationservice.domain.component;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.oauth2.core.user.OAuth2User;
@@ -14,10 +17,11 @@ import ru.zeker.authenticationservice.exception.OAuth2ProviderException;
 import ru.zeker.authenticationservice.repository.UserRepository;
 import ru.zeker.authenticationservice.service.JwtService;
 import ru.zeker.authenticationservice.service.OAuth2Service;
+import ru.zeker.authenticationservice.util.CookieUtils;
 
 import java.io.IOException;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.util.Map;
 
 @Component
 @RequiredArgsConstructor
@@ -26,6 +30,7 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
     private final JwtService jwtService;
     private final UserRepository userRepository;
     private final OAuth2Service oAuth2Service;
+    private final ObjectMapper objectMapper;
 
     /**
      * Обработчик успешной аутентификации OAuth2.
@@ -72,15 +77,26 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
             String accessToken = jwtService.generateAccessToken(user);
             String refreshToken = jwtService.generateRefreshToken(user);
 
-            String redirectUrl = "/oauth2/success?accessToken=" + URLEncoder.encode(accessToken, StandardCharsets.UTF_8) +
-                    "&refreshToken=" + URLEncoder.encode(refreshToken, StandardCharsets.UTF_8);
-            log.info("Перенаправление аутентифицированного пользователя на: {}", "/oauth2/success");
-            response.sendRedirect(redirectUrl);
+            ResponseCookie refreshCookie = CookieUtils.createRefreshTokenCookie(refreshToken, Duration.ofDays(7));
+            response.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());
+
+            response.setContentType("application/json;charset=UTF-8");
+            objectMapper.writeValue(response.getWriter(), Map.of(
+                    "access_token", accessToken,
+                    "token_type", "Bearer"
+            ));
         } catch (Exception e) {
             log.error("Ошибка OAuth2SuccessHandler: {}", e.getMessage(), e);
-            response.sendRedirect("/oauth2/failure");
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.setContentType("application/json;charset=UTF-8");
+            objectMapper.writeValue(response.getWriter(), Map.of(
+                    "error", "OAuth2 authentication прошла неудачно",
+                    "message", e.getMessage()
+            ));
         }
     }
+
+
 
 
     /**

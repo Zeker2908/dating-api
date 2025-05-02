@@ -11,7 +11,7 @@ public final class CookieUtils {
         return ResponseCookie.from("refresh_token", value)
                 .httpOnly(true)
                 .secure(true)
-                .path("/api")
+                .path("/")
                 .maxAge(duration)
                 .sameSite("Strict")
                 .build();

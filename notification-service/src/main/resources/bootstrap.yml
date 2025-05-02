@@ -31,3 +31,5 @@ spring:
       host: localhost
       port: 6380
       database: 0
+app:
+  frontend-url: http://localhost:3000

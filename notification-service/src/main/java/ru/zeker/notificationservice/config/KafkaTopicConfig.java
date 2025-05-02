@@ -1,4 +1,4 @@
-package ru.zeker.authenticationservice.config;
+package ru.zeker.notificationservice.config;
 
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.common.config.TopicConfig;
@@ -8,15 +8,13 @@ import org.springframework.kafka.config.TopicBuilder;
 
 @Configuration
 public class KafkaTopicConfig {
-
     @Bean
-    public NewTopic emailNotificationTopic() {
+    public NewTopic emailNotificationDltTopic() {
         return TopicBuilder
-                .name("email-notification-events")
+                .name("email-notification-events" + ".DLT")
                 .partitions(32)
                 .replicas(1)
                 .config(TopicConfig.RETENTION_MS_CONFIG, "604800000")
                 .build();
     }
-
 }

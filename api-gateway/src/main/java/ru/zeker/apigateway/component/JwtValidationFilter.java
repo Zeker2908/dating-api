@@ -9,15 +9,23 @@ import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.cloud.gateway.route.Route;
 import org.springframework.cloud.gateway.support.ServerWebExchangeUtils;
 import org.springframework.core.Ordered;
+import org.springframework.core.ResolvableType;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.codec.json.Jackson2JsonEncoder;
 import org.springframework.http.server.reactive.ServerHttpRequest;
+import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 import ru.zeker.apigateway.exception.AuthException;
 import ru.zeker.common.util.JwtUtils;
 
+import java.time.Instant;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Optional;
 
 import static ru.zeker.common.headers.ApiHeaders.*;
@@ -26,101 +34,113 @@ import static ru.zeker.common.headers.ApiHeaders.*;
 @Component
 @RequiredArgsConstructor
 public class JwtValidationFilter implements GlobalFilter, Ordered {
-    private static final String BEARER_PREFIX = "Bearer ";
-    private static final String REQUIRES_AUTH_KEY = "auth-required";
+    private static final String BEARER_PREFIX     = "Bearer ";
+    private static final String AUTH_REQUIRED_KEY = "auth-required";
     private static final String REQUIRED_ROLE_KEY = "required-role";
 
     private final JwtUtils jwtUtils;
+    private final Jackson2JsonEncoder jsonEncoder;
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
-        return checkIfAuthRequired(exchange)
-                .flatMap(authRequired -> {
-                    if (!authRequired) {
+        return isAuthRequired(exchange)
+                .flatMap(required -> {
+                    if (!required) {
                         return chain.filter(exchange);
                     }
-                    return extractAndValidateToken(exchange)
-                            .flatMap(claims -> verifyAuthorization(exchange, claims))
-                            .flatMap(claims -> chain.filter(addUserHeaders(exchange, claims)));
+                    return extractClaims(exchange)
+                            .flatMap(claims -> verifyRole(exchange, claims))
+                            .flatMap(claims -> chain.filter(withUserHeaders(exchange, claims)));
                 })
-                .onErrorResume(AuthException.class, ex -> handleAuthError(exchange, ex));
+                .onErrorResume(AuthException.class, ex -> writeError(exchange, ex));
     }
 
-    private Mono<Boolean> checkIfAuthRequired(ServerWebExchange exchange) {
-        return Mono.fromCallable(() -> {
-            Route route = exchange.getAttribute(ServerWebExchangeUtils.GATEWAY_ROUTE_ATTR);
-            return Optional.ofNullable(route)
-                    .map(Route::getMetadata)
-                    .map(metadata -> Boolean.parseBoolean(metadata.getOrDefault(REQUIRES_AUTH_KEY, "true").toString()))
-                    .orElse(true);
-        });
-    }
-
-    private Mono<Claims> extractAndValidateToken(ServerWebExchange exchange) {
-        return Mono.fromCallable(() -> {
-            String authHeader = exchange.getRequest().getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
-
-            if (authHeader == null || !authHeader.startsWith(BEARER_PREFIX)) {
-                throw new AuthException("Нет заголовка " + HttpHeaders.AUTHORIZATION, HttpStatus.UNAUTHORIZED);
-            }
-
-            String token = authHeader.substring(BEARER_PREFIX.length());
-            try {
-                if (jwtUtils.isTokenExpired(token)) {
-                    throw new AuthException("Токен истек", HttpStatus.UNAUTHORIZED);
-                }
-                return jwtUtils.extractAllClaims(token);
-            } catch (JwtException e) {
-                throw new AuthException(e.getMessage(), HttpStatus.UNAUTHORIZED);
-            }
-        });
-    }
-
-    private Mono<Claims> verifyAuthorization(ServerWebExchange exchange, Claims claims) {
-        return Mono.fromCallable(() -> {
-            String userRole = claims.get("role", String.class);
-            if (userRole == null) {
-                throw new AuthException("Роль пользователя не указана в токене", HttpStatus.FORBIDDEN);
-            }
-
-            String requiredRole = getRequiredRole(exchange);
-
-            if (requiredRole != null && !requiredRole.equals(userRole)) {
-                throw new AuthException("Недостаточно привилегий", HttpStatus.FORBIDDEN);
-            }
-            return claims;
-        });
-    }
-
-    private String getRequiredRole(ServerWebExchange exchange) {
+    private Mono<Boolean> isAuthRequired(ServerWebExchange exchange) {
         Route route = exchange.getAttribute(ServerWebExchangeUtils.GATEWAY_ROUTE_ATTR);
-        return Optional.ofNullable(route)
+        boolean required = Optional.ofNullable(route)
                 .map(Route::getMetadata)
-                .map(metadata -> metadata.get(REQUIRED_ROLE_KEY))
+                .map(meta -> Boolean.parseBoolean(meta.getOrDefault(AUTH_REQUIRED_KEY, "true").toString()))
+                .orElse(true);
+        return Mono.just(required);
+    }
+
+    private Mono<Claims> extractClaims(ServerWebExchange exchange) {
+        String authHeader = exchange.getRequest().getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
+        if (authHeader == null || !authHeader.startsWith(BEARER_PREFIX)) {
+            return Mono.error(new AuthException("Отсутствует заголовок авторизации", HttpStatus.UNAUTHORIZED));
+        }
+
+        String token = authHeader.substring(BEARER_PREFIX.length());
+
+        return Mono.fromCallable(() -> {
+                    try {
+                        if (jwtUtils.isTokenExpired(token)) {
+                            throw new AuthException("Срок действия токена истек", HttpStatus.UNAUTHORIZED);
+                        }
+                        return jwtUtils.extractAllClaims(token);
+                    } catch (JwtException e) {
+                        log.warn("Недействительный JWT: {}", e.getMessage());
+                        throw new AuthException("Недействительный токен", HttpStatus.UNAUTHORIZED);
+                    } catch (Exception e) {
+                        log.warn("Не удалось проанализировать токен {}", e.getMessage());
+                        throw new AuthException("Недействительный токен", HttpStatus.UNAUTHORIZED);
+                    }
+                })
+                .subscribeOn(Schedulers.boundedElastic());
+    }
+
+    private Mono<Claims> verifyRole(ServerWebExchange exchange, Claims claims) {
+        String userRole = claims.get("role", String.class);
+        if (userRole == null) {
+            log.warn("Роль пользователя не указана в токене");
+            return Mono.error(new AuthException("Роль пользователя не указана в токене", HttpStatus.FORBIDDEN));
+        }
+        Route route = exchange.getAttribute(ServerWebExchangeUtils.GATEWAY_ROUTE_ATTR);
+        String requiredRole = Optional.ofNullable(route)
+                .map(Route::getMetadata)
+                .map(meta -> meta.get(REQUIRED_ROLE_KEY))
                 .map(Object::toString)
                 .orElse(null);
+        if (requiredRole != null && !requiredRole.equals(userRole)) {
+            log.warn("Недостаточно привилегий");
+            return Mono.error(new AuthException("Недостаточно привилегий", HttpStatus.FORBIDDEN));
+        }
+        return Mono.just(claims);
     }
 
-    private ServerWebExchange addUserHeaders(ServerWebExchange exchange, Claims claims) {
-        ServerHttpRequest mutatedRequest = exchange.getRequest().mutate()
+    private ServerWebExchange withUserHeaders(ServerWebExchange exchange, Claims claims) {
+        ServerHttpRequest mutated = exchange.getRequest().mutate()
                 .header(X_USER_ID_KEY, claims.get("id", String.class))
                 .header(X_USER_NAME_HEADER, claims.getSubject())
                 .header(X_USER_ROLE_HEADER, claims.get("role", String.class))
                 .build();
-
-        return exchange.mutate().request(mutatedRequest).build();
+        return exchange.mutate().request(mutated).build();
     }
 
-    private Mono<Void> handleAuthError(ServerWebExchange exchange, AuthException ex) {
-        log.warn("Ошибка авторизации: {}, {}, {}",
-                ex.getMessage(),
-                exchange.getRequest().getMethod(),
-                exchange.getRequest().getPath());
 
-        exchange.getResponse().setStatusCode(ex.getStatus());
-        exchange.getResponse().getHeaders().set(X_ERROR_HEADER, ex.getMessage());
-        return exchange.getResponse().setComplete();
+    private Mono<Void> writeError(ServerWebExchange exchange, AuthException ex) {
+        ServerHttpResponse response = exchange.getResponse();
+        response.setStatusCode(ex.getStatus());
+        response.getHeaders().setContentType(MediaType.APPLICATION_JSON);
+
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("timestamp", Instant.now().toString());
+        body.put("path", exchange.getRequest().getPath().toString());
+        body.put("status", ex.getStatus().value());
+        body.put("error", ex.getStatus().getReasonPhrase());
+        body.put("message", ex.getMessage());
+
+        return response.writeWith(
+                jsonEncoder.encode(
+                        Mono.just(body),
+                        response.bufferFactory(),
+                        ResolvableType.forClassWithGenerics(Map.class, String.class, Object.class),
+                        MediaType.APPLICATION_JSON,
+                        null
+                )
+        );
     }
+
 
     @Override
     public int getOrder() {

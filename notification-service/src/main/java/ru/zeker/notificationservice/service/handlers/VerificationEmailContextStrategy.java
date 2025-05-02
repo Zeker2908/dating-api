@@ -16,7 +16,7 @@ public class VerificationEmailContextStrategy implements EmailContextStrategy {
 
     private final EmailService emailService;
 
-    @Value("${app.domain:http://localhost:8080}")
+    @Value("${app.frontend-url:http://localhost:3000}")
     private String applicationUrl;
 
     @Value("${app.links.email-verification:/email-confirmation}")

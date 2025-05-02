@@ -16,11 +16,9 @@ import ru.zeker.authenticationservice.domain.model.enums.OAuth2Provider;
 public interface UserMapper {
 
     // Email нормализуется к lower case в сервисных методах
-    @Mapping(target = "email", expression = "java(request.getEmail())")
     @Mapping(target = "role", constant = "USER")
     User toEntity(RegisterRequest request);
 
-    @Mapping(target = "email", expression = "java(userInfo.getEmail())")
     @Mapping(target = "role", constant = "USER")
     User toOAuthEntity(OAuth2UserInfo userInfo, OAuth2Provider provider);
 

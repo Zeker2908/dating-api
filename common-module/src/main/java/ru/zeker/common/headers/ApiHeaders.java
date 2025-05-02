@@ -6,5 +6,4 @@ public final class ApiHeaders {
     public static final String X_USER_ID_KEY = "X-User-Id";
     public static final String X_USER_NAME_HEADER = "X-User-Name";
     public static final String X_USER_ROLE_HEADER = "X-User-Role";
-    public static final String X_ERROR_HEADER = "X-Error";
 }

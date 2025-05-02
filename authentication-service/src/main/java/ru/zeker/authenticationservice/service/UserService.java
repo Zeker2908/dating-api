@@ -106,7 +106,6 @@ public class UserService {
         log.info("Удален пользователь с email: {}", email);
     }
 
-    @Transactional(readOnly = true)
     public boolean existsByEmail(String email) {
         return repository.existsByEmail(email);
     }

@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.RedisConnectionFailureException;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import ru.zeker.common.dto.kafka.EmailEvent;
 import ru.zeker.common.dto.kafka.EmailEventType;
@@ -28,6 +29,7 @@ public class ConsumerKafkaListeners {
     private final EmailService emailService;
     private final RedisTemplate<String, String> redisTemplate;
     private final Map<EmailEventType, EmailContextStrategy> emailEventContextMap;
+    private final KafkaTemplate<String, Object> kafkaTemplate;
 
     @Value("${app.redis.duration:15}")
     private int redisDuration;
@@ -104,6 +106,7 @@ public class ConsumerKafkaListeners {
                 // Запускаем отправку асинхронно и не блокируем текущий поток
                 emailService.sendEmail(emailContext).exceptionally(ex -> {
                     log.error("Ошибка отправки события {} для пользователя {}: {}", eventType, event.getEmail(), ex.getMessage());
+                    sendToDeadLetterTopic(record);
                     return null;
                 });
 
@@ -122,5 +125,16 @@ public class ConsumerKafkaListeners {
         }
 
     }
+
+    private void sendToDeadLetterTopic(ConsumerRecord<String, EmailEvent> record) {
+        try {
+            String dltTopic = record.topic() + ".DLT";
+            kafkaTemplate.send(dltTopic, record.key(), record.value());
+            log.warn("Сообщение отправлено в Dead Letter Topic: {}", dltTopic);
+        } catch (Exception e) {
+            log.error("Не удалось отправить в DLT: {}", e.getMessage(), e);
+        }
+    }
+
 
 }

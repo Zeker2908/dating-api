@@ -8,6 +8,7 @@ import ru.zeker.authenticationservice.domain.dto.OAuth2UserInfo;
 import ru.zeker.authenticationservice.domain.mapper.UserMapper;
 import ru.zeker.authenticationservice.domain.model.entity.User;
 import ru.zeker.authenticationservice.domain.model.enums.OAuth2Provider;
+import ru.zeker.authenticationservice.repository.UserRepository;
 
 import java.util.Map;
 
@@ -15,7 +16,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 @Slf4j
 public class OAuth2Service {
-    private final UserService userService;
+    private final UserRepository userRepository;
     private final UserMapper userMapper;
     /**
      * Регистрирует нового пользователя с помощью предоставленных строк OAuth2User и OAuth2Provider.
@@ -40,15 +41,11 @@ public class OAuth2Service {
         
         User user = userMapper.toOAuthEntity(userInfo, oAuth2Provider);
         
-        log.debug("Создан новый объект пользователя для регистрации OAuth2: {}", user);
-        
-        try {
-            User createdUser = userService.create(user);
-            log.info("Успешно зарегистрированный пользователь OAuth2: id={}, email={}", createdUser.getId(), createdUser.getEmail());
-            return createdUser;
-        } catch (Exception e) {
-            log.error("Не удалось зарегистрировать пользователя OAuth2 с адресом электронной почты.={}: {}", user.getEmail(), e.getMessage(), e);
-            throw e;
-        }
+        log.debug("Создан новый объект пользователя для регистрации OAuth2");
+
+        User createdUser = userRepository.save(user);
+        log.info("Успешно зарегистрированный пользователь OAuth2: id={}, email={}", createdUser.getId(), createdUser.getEmail());
+        return createdUser;
+
     }
 }

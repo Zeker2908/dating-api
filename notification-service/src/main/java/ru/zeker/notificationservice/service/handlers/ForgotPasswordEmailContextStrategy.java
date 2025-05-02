@@ -16,7 +16,7 @@ public class ForgotPasswordEmailContextStrategy implements EmailContextStrategy 
 
     private final EmailService emailService;
 
-    @Value("${app.domain:http://localhost:8080}")
+    @Value("${app.frontend-url:http://localhost:3000}")
     private String applicationUrl;
 
     @Value("${app.links.password-reset:/password-reset}")

@@ -1,5 +1,7 @@
 package ru.zeker.authenticationservice.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -18,6 +20,8 @@ import org.springframework.security.web.SecurityFilterChain;
 import ru.zeker.authenticationservice.domain.component.OAuth2SuccessHandler;
 import ru.zeker.common.config.JwtProperties;
 
+import java.util.Map;
+
 @Configuration
 @Import(SecurityBeansConfig.class)
 @EnableWebSecurity
@@ -27,6 +31,7 @@ public class SecurityConfig {
     private final OAuth2SuccessHandler oAuth2SuccessHandler;
     private final AuthenticationProvider authenticationProvider;
     private final OAuth2UserService<OAuth2UserRequest, OAuth2User> oAuth2UserService;
+    private final ObjectMapper objectMapper;
 
     /**
      * Настраивает {@link SecurityFilterChain} для конечных точек OAuth2.
@@ -58,12 +63,20 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
                 .oauth2Login(oauth -> oauth
-                    // Используем стандартные пути для OAuth2
-                    .authorizationEndpoint(endpoint -> endpoint.baseUri("/oauth2/authorization"))
-                    .redirectionEndpoint(endpoint -> endpoint.baseUri("/login/oauth2/code/*"))
-                    .userInfoEndpoint(userInfo -> userInfo.userService(oAuth2UserService))
-                    .successHandler(oAuth2SuccessHandler)
-                    .failureHandler((request, response, exception) -> response.sendRedirect("/oauth2/failure")))
+                        .authorizationEndpoint(e -> e.baseUri("/oauth2/authorization"))
+                        .redirectionEndpoint(e -> e.baseUri("/login/oauth2/code/*"))
+                        .userInfoEndpoint(u -> u.userService(oAuth2UserService))
+                        .successHandler(oAuth2SuccessHandler)
+                        .failureHandler((request, response, exception) -> {
+                            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                            response.setContentType("application/json;charset=UTF-8");
+                            objectMapper.writeValue(response.getWriter(), Map.of(
+                                    "error", "OAuth2 authentication прошла неудачно",
+                                    "message", exception.getMessage()
+                            ));
+                        })
+                )
+
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED));
         return http.build();
     }
