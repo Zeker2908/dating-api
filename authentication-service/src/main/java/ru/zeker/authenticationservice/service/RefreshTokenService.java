@@ -10,7 +10,7 @@ import ru.zeker.authenticationservice.exception.TokenExpiredException;
 import ru.zeker.authenticationservice.exception.TokenNotFoundException;
 import ru.zeker.authenticationservice.exception.UserNotFoundException;
 import ru.zeker.authenticationservice.repository.RefreshTokenRepository;
-import ru.zeker.common.util.JwtUtils;
+import ru.zeker.common.config.JwtProperties;
 
 import java.util.Date;
 import java.util.UUID;
@@ -25,7 +25,7 @@ import java.util.concurrent.TimeUnit;
 @RequiredArgsConstructor
 public class RefreshTokenService {
     private final JwtService jwtService;
-    private final JwtUtils jwtUtils;
+    private final JwtProperties jwtProperties;
     private final RefreshTokenRepository refreshTokenRepository;
     private final UserService userService;
 
@@ -40,7 +40,7 @@ public class RefreshTokenService {
         log.debug("Создание нового refresh-токена для пользователя с ID: {}", user.getId());
         
         String token = jwtService.generateRefreshToken(user);
-        Date expiryDate = jwtUtils.extractExpiration(token);
+        Date expiryDate = new Date(System.currentTimeMillis() + jwtProperties.getRefresh().getExpiration());
         long ttlSeconds = TimeUnit.MILLISECONDS.toSeconds(expiryDate.getTime() - System.currentTimeMillis());
 
         RefreshToken refreshToken = RefreshToken.builder()

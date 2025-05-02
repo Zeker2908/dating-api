@@ -1,6 +1,8 @@
 package ru.zeker.common.util;
 
+import com.google.common.cache.Cache;
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtParser;
 import io.jsonwebtoken.Jwts;
 import jakarta.annotation.PostConstruct;
 import lombok.Getter;
@@ -14,13 +16,17 @@ import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
 import java.util.Date;
+import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 
 @RequiredArgsConstructor
 @Getter
 public class JwtUtils {
     private final JwtProperties jwtProperties;
-    private Key signingKey;
+    private final Cache<String, Claims> claimsCache;
+
+    private Key publicKey;
+    private JwtParser jwtParser;
 
     @PostConstruct
     public void init() {
@@ -37,7 +43,12 @@ public class JwtUtils {
             byte[] keyBytes = Base64.getDecoder().decode(publicKeyPEM);
             X509EncodedKeySpec spec = new X509EncodedKeySpec(keyBytes);
             KeyFactory kf = KeyFactory.getInstance("EC");
-            this.signingKey = kf.generatePublic(spec);
+            this.publicKey = kf.generatePublic(spec);
+
+            this.jwtParser = Jwts.parserBuilder()
+                    .setSigningKey(this.publicKey)
+                    .build();
+
         }catch (NoSuchAlgorithmException e) {
             throw new IllegalStateException("Алгоритм EC не поддерживается", e);
         } catch (InvalidKeySpecException e) {
@@ -47,13 +58,14 @@ public class JwtUtils {
         }
     }
 
-    public Claims extractAllClaims(String token){
-        return Jwts
-                .parserBuilder()
-                .setSigningKey(signingKey)
-                .build()
-                .parseClaimsJws(token)
-                .getBody();
+    public Claims extractAllClaims(String token) {
+        try {
+            return claimsCache.get(token, ()->
+                    jwtParser.parseClaimsJws(token).getBody());
+        }catch (ExecutionException e){
+            throw new RuntimeException("Не удалось проанализировать токен", e);
+        }
+
     }
 
     public <T> T extractClaim(String token, Function<Claims, T> claimsResolver){

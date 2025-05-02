@@ -10,7 +10,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import ru.zeker.authenticationservice.domain.dto.*;
+import ru.zeker.authenticationservice.domain.dto.Tokens;
 import ru.zeker.authenticationservice.domain.dto.request.*;
 import ru.zeker.authenticationservice.domain.dto.response.AuthenticationResponse;
 import ru.zeker.authenticationservice.service.AuthenticationService;
@@ -39,7 +39,6 @@ public class AuthenticationController {
      */
     @PostMapping("/register")
     public ResponseEntity<Void> registerWithKafka(@RequestBody @Valid RegisterRequest request) {
-        log.info("Запрос на регистрацию пользователя: {}", request.getEmail());
         authenticationService.register(request);
 
         return ResponseEntity.status(HttpStatus.CREATED).build();
@@ -55,7 +54,6 @@ public class AuthenticationController {
     @PostMapping("/login")
     public ResponseEntity<AuthenticationResponse> login(@RequestBody @Valid LoginRequest request,
                                                         HttpServletResponse response) {
-        log.info("Запрос на вход пользователя: {}", request.getEmail());
         Tokens tokens = authenticationService.login(request);
         ResponseCookie cookie = createRefreshTokenCookie(tokens.getRefreshToken(), Duration.ofDays(7));
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
@@ -71,7 +69,6 @@ public class AuthenticationController {
      */
     @PostMapping("/email-confirmation")
     public ResponseEntity<Void> confirmEmail(@RequestBody @Valid ConfirmationEmailRequest request) {
-        log.info("Запрос на подтверждение email");
         authenticationService.confirmEmail(request);
 
         return ResponseEntity.ok().build();
@@ -89,7 +86,6 @@ public class AuthenticationController {
      */
     @PostMapping("/email-confirmation/resend")
     public ResponseEntity<Void> resendConfirmationEmail(@RequestBody @Valid ResendVerificationRequest request) {
-        log.info("Запрос на повторную отправку подтверждения email");
         authenticationService.resendVerificationEmail(request);
 
         return ResponseEntity.accepted().build();
@@ -103,9 +99,7 @@ public class AuthenticationController {
      */
     @PostMapping("/password-reset/request")
     public ResponseEntity<Void> forgotPassword(@RequestBody @Valid ForgotPasswordRequest request) {
-        log.info("Запрос на восстановление пароля: {}", request.getEmail());
         authenticationService.forgotPassword(request);
-
         return ResponseEntity.accepted().build();
     }
 
@@ -117,7 +111,6 @@ public class AuthenticationController {
      */
     @PostMapping("/password-reset")
     public ResponseEntity<Void> resetPassword(@RequestBody @Valid ResetPasswordRequest request) {
-        log.info("Запрос на сброс пароля");
         authenticationService.resetPassword(request);
         //TODO:Придумать как отозвать все рефреш токены
         return ResponseEntity.ok().build();
@@ -133,7 +126,6 @@ public class AuthenticationController {
     @PostMapping("/refresh")
     public ResponseEntity<AuthenticationResponse> refreshToken(@CookieValue(name = "refresh_token") @NotNull String refreshToken,
                                                                HttpServletResponse response) {
-        log.debug("Запрос на обновление токена");
         Tokens tokens = authenticationService.refreshToken(refreshToken);
         ResponseCookie cookie = createRefreshTokenCookie(tokens.getRefreshToken(), Duration.ofDays(7));
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
@@ -151,7 +143,6 @@ public class AuthenticationController {
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(@CookieValue(name = "refresh_token") String refreshToken,
                                        HttpServletResponse response) {
-        log.info("Запрос на выход из системы");
         refreshTokenService.revokeRefreshToken(refreshToken);
         ResponseCookie cookie = createRefreshTokenCookie("", Duration.ZERO);
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());

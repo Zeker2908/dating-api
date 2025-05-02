@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import ru.zeker.authenticationservice.domain.dto.Tokens;
 import ru.zeker.authenticationservice.domain.dto.request.*;
 import ru.zeker.authenticationservice.domain.mapper.UserMapper;
+import ru.zeker.authenticationservice.domain.model.entity.LocalAuth;
 import ru.zeker.authenticationservice.domain.model.entity.RefreshToken;
 import ru.zeker.authenticationservice.domain.model.entity.User;
 import ru.zeker.authenticationservice.exception.InvalidTokenException;
@@ -173,33 +174,33 @@ public class AuthenticationService {
         log.info("Запрос на сброс пароля");
         String token = request.getToken();
         String password = request.getPassword();
+        String encodedPassword = passwordEncoder.encode(password);
 
-        if(jwtUtils.isTokenExpired(token)) {
-            log.warn("Попытка сброса пароля с просроченным токеном");
+        // Объединенные проверки токена
+        if (jwtUtils.isTokenExpired(token) || 
+            !userService.findById(jwtService.extractUserId(token)).getVersion().equals(jwtService.extractVersion(token)) ||
+            !jwtUtils.isValidUsername(token, userService.findById(jwtService.extractUserId(token)).getEmail())) {
+            log.warn("Недействительный токен для сброса пароля");
             throw new InvalidTokenException();
         }
 
         User user = userService.findById(jwtService.extractUserId(token));
 
-        if(!user.getVersion().equals(jwtService.extractVersion(token))){
-            log.warn("Попытка сбросить пароль с измененными пользовательскими данными ");
-            throw new InvalidTokenException();
-        }
-
-        if (!jwtUtils.isValidUsername(token, user.getEmail())) {
-            log.warn("Попытка сброса пароля с недействительными данными токена");
-            throw new InvalidTokenException();
+        if(user.getLocalAuth() == null) {
+            user.setLocalAuth(LocalAuth.builder()
+                    .user(user)
+                    .password(encodedPassword)
+                    .enabled(true)
+                    .build());
+        } else {
+            user.getLocalAuth().setPassword(encodedPassword);
         }
 
         passwordHistoryService.savePassword(user, password);
-
-        user.getLocalAuth().setPassword(passwordEncoder.encode(password));
         userService.update(user);
-
         refreshTokenService.revokeAllUserTokens(token);
 
         log.info("Пароль успешно сброшен для пользователя: {}", user.getEmail());
-
     }
 
     /**
@@ -241,6 +242,4 @@ public class AuthenticationService {
                 .token(token)
                 .build();
     }
-
-
 }

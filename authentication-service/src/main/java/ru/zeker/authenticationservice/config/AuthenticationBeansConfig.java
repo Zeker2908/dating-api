@@ -1,5 +1,8 @@
 package ru.zeker.authenticationservice.config;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
+import io.jsonwebtoken.Claims;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -18,9 +21,11 @@ import ru.zeker.authenticationservice.service.UserService;
 import ru.zeker.common.util.JwtUtils;
 import ru.zeker.common.config.JwtProperties;
 
+import java.util.concurrent.TimeUnit;
+
 @Configuration
 @RequiredArgsConstructor
-public class SecurityBeansConfig {
+public class AuthenticationBeansConfig {
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -38,8 +43,16 @@ public class SecurityBeansConfig {
     }
 
     @Bean
-    public JwtUtils jwtUtils(JwtProperties jwtProperties) {
-        return new JwtUtils(jwtProperties);
+    public Cache<String, Claims> claimsCache(){
+       return CacheBuilder.newBuilder()
+                .maximumSize(1000)
+                .expireAfterAccess(10, TimeUnit.SECONDS)
+                .build();
+    }
+
+    @Bean
+    public JwtUtils jwtUtils(JwtProperties jwtProperties, Cache<String,Claims> claimsCache) {
+        return new JwtUtils(jwtProperties, claimsCache);
     }
 
     @Bean

@@ -23,7 +23,7 @@ import ru.zeker.common.config.JwtProperties;
 import java.util.Map;
 
 @Configuration
-@Import(SecurityBeansConfig.class)
+@Import(AuthenticationBeansConfig.class)
 @EnableWebSecurity
 @RequiredArgsConstructor
 @EnableConfigurationProperties(JwtProperties.class)

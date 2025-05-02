@@ -36,7 +36,6 @@ public class PasswordHistoryService {
         if(!existingPasswords.isEmpty()){
             isPasswordReused = existingPasswords.stream()
                     .anyMatch(history -> passwordEncoder.matches(rawPassword, history.getPassword()));
-
         }
         if (isPasswordReused) {
             throw new IllegalArgumentException("Пароль уже использовался ранее. Пожалуйста, выберите другой пароль.");

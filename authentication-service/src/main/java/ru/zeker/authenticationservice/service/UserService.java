@@ -71,12 +71,16 @@ public class UserService {
 
     @Transactional
     public void changePassword(String id, String oldPassword, String newPassword) {
-        User user = findById(UUID.fromString(id));
-        
         if (oldPassword.equals(newPassword)) {
             throw new BadCredentialsException(SAME_PASSWORDS);
         }
-        
+
+        User user = findById(UUID.fromString(id));
+
+        if(user.getLocalAuth()==null){
+            throw new IllegalStateException("Пользователь не зарегистрирован локально");
+        }
+
         if (!passwordEncoder.matches(oldPassword, user.getPassword())) {
             throw new AuthenticationCredentialsNotFoundException(OLD_PASSWORD_MISMATCH);
         }

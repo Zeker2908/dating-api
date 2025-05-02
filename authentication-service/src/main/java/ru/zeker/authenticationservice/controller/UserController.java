@@ -26,6 +26,8 @@ public class UserController {
     private final UserMapper userMapper;
     private final RefreshTokenService refreshTokenService;
 
+    //TODO: добавить возможность привязать пароль для oauth пользователей
+
     @GetMapping("/me")
     public ResponseEntity<UserResponse> getCurrentUser(@RequestHeader(ApiHeaders.X_USER_ID_KEY) String id) {
         return ResponseEntity.ok(userMapper.toResponse(userService.findById(UUID.fromString(id))));
