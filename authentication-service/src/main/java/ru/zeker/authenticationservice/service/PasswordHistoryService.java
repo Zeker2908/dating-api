@@ -4,15 +4,15 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import ru.zeker.authenticationservice.domain.model.entity.PasswordHistory;
 import ru.zeker.authenticationservice.domain.model.entity.User;
+import ru.zeker.authenticationservice.exception.PasswordHistoryException;
 import ru.zeker.authenticationservice.repository.PasswordHistoryRepository;
 
-import java.util.Comparator;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -27,40 +27,31 @@ public class PasswordHistoryService {
         return passwordHistoryRepository.findAllByLocalAuthId(userId);
     }
 
-    @Transactional
-    public void savePassword(User user, String rawPassword) {
-        // Проверка на повторное использование пароля
+    @Transactional(propagation = Propagation.REQUIRED)
+    public void create(User user, String rawPassword) {
+        if (user.getLocalAuth() == null) {
+            throw new IllegalStateException("LocalAuth не найден для пользователя");
+        }
         Set<PasswordHistory> existingPasswords = findAllByUserId(user.getId());
-        boolean isPasswordReused = false;
 
-        if(!existingPasswords.isEmpty()){
-            isPasswordReused = existingPasswords.stream()
-                    .anyMatch(history -> passwordEncoder.matches(rawPassword, history.getPassword()));
-        }
+        boolean isPasswordReused = existingPasswords.parallelStream()
+                .anyMatch(history -> passwordEncoder.matches(rawPassword, history.getPassword()));
+
         if (isPasswordReused) {
-            throw new IllegalArgumentException("Пароль уже использовался ранее. Пожалуйста, выберите другой пароль.");
+            throw new PasswordHistoryException("Пароль уже использовался ранее. Пожалуйста, выберите другой пароль.");
         }
-        
-        // Создание новой записи истории
+
         PasswordHistory passwordHistory = PasswordHistory.builder()
                 .localAuth(user.getLocalAuth())
                 .password(passwordEncoder.encode(rawPassword))
                 .build();
-        
+
         passwordHistoryRepository.save(passwordHistory);
-        
+
         // Ограничение количества хранимых паролей
-        if (existingPasswords.size() >= maxPasswordHistoryCount) {
-            removeOldestPasswords(existingPasswords, existingPasswords.size() - maxPasswordHistoryCount + 1);
+        int size = existingPasswords.size();
+        if (size >= maxPasswordHistoryCount) {
+           passwordHistoryRepository.deleteOldestByLocalAuthId(user.getId(), size - maxPasswordHistoryCount + 1);
         }
-    }
-    @Transactional
-    protected void removeOldestPasswords(Set<PasswordHistory> passwordHistories, int countToRemove) {
-        Set<PasswordHistory> passwordsToRemove = passwordHistories.stream()
-                .sorted(Comparator.comparing(PasswordHistory::getCreatedAt))
-                .limit(countToRemove)
-                .collect(Collectors.toSet());
-        
-        passwordHistoryRepository.deleteAll(passwordsToRemove);
     }
 }

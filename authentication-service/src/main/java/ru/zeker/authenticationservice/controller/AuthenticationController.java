@@ -112,7 +112,6 @@ public class AuthenticationController {
     @PostMapping("/password-reset")
     public ResponseEntity<Void> resetPassword(@RequestBody @Valid ResetPasswordRequest request) {
         authenticationService.resetPassword(request);
-        //TODO:Придумать как отозвать все рефреш токены
         return ResponseEntity.ok().build();
     }
 

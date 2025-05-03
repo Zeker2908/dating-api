@@ -50,6 +50,7 @@ public class EmailService {
      */
     @Retryable(
             retryFor = {EmailSendingException.class},
+            maxAttempts = 3,
             backoff = @Backoff(delay = 1000, multiplier = 2, maxDelay = 10000)
     )
     @Async("emailSendingExecutor")

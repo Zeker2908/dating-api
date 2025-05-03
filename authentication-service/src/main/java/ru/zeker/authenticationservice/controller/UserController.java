@@ -6,6 +6,7 @@ import jakarta.ws.rs.core.HttpHeaders;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import ru.zeker.authenticationservice.domain.dto.request.BindPasswordRequest;
 import ru.zeker.authenticationservice.domain.dto.request.ChangePasswordRequest;
 import ru.zeker.authenticationservice.domain.dto.response.UserResponse;
 import ru.zeker.authenticationservice.domain.mapper.UserMapper;
@@ -26,11 +27,16 @@ public class UserController {
     private final UserMapper userMapper;
     private final RefreshTokenService refreshTokenService;
 
-    //TODO: добавить возможность привязать пароль для oauth пользователей
-
     @GetMapping("/me")
     public ResponseEntity<UserResponse> getCurrentUser(@RequestHeader(ApiHeaders.X_USER_ID_KEY) String id) {
         return ResponseEntity.ok(userMapper.toResponse(userService.findById(UUID.fromString(id))));
+    }
+
+    @PostMapping("/me/password/bind")
+    public ResponseEntity<Void> bindPassword(@RequestHeader(ApiHeaders.X_USER_ID_KEY) String id,
+                                             @RequestBody @Valid BindPasswordRequest request){
+        userService.bindPassword(id, request);
+        return ResponseEntity.accepted().build();
     }
 
     @PatchMapping("/me/password")

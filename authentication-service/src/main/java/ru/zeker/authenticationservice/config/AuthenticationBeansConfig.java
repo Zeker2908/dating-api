@@ -45,8 +45,8 @@ public class AuthenticationBeansConfig {
     @Bean
     public Cache<String, Claims> claimsCache(){
        return CacheBuilder.newBuilder()
-                .maximumSize(1000)
-                .expireAfterAccess(10, TimeUnit.SECONDS)
+                .maximumSize(10_000)
+                .expireAfterAccess(5, TimeUnit.SECONDS)
                 .build();
     }
 

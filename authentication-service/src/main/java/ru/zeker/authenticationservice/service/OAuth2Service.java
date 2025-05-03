@@ -16,7 +16,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 @Slf4j
 public class OAuth2Service {
-    private final UserRepository userRepository;
+    private final UserService userService;
     private final UserMapper userMapper;
     /**
      * Регистрирует нового пользователя с помощью предоставленных строк OAuth2User и OAuth2Provider.
@@ -43,7 +43,7 @@ public class OAuth2Service {
         
         log.debug("Создан новый объект пользователя для регистрации OAuth2");
 
-        User createdUser = userRepository.save(user);
+        User createdUser = userService.create(user);
         log.info("Успешно зарегистрированный пользователь OAuth2: id={}, email={}", createdUser.getId(), createdUser.getEmail());
         return createdUser;
 

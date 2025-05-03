@@ -1,5 +1,6 @@
 package ru.zeker.authenticationservice.service;
 
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -20,6 +21,7 @@ import ru.zeker.common.dto.kafka.EmailEvent;
 import ru.zeker.common.dto.kafka.EmailEventType;
 import ru.zeker.common.util.JwtUtils;
 
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -45,18 +47,25 @@ public class AuthenticationService {
      *
      * @param request данные нового пользователя
      */
+    @Transactional
     public void register(RegisterRequest request) {
         String email = request.getEmail().toLowerCase();
         log.info("Регистрация нового пользователя с email: {}", email);
 
-        User user = userMapper.toEntity(request);
-                
+        // Создаем пользователя с закодированным паролем
+        User user = userMapper.toEntity(request, passwordEncoder);
+
+        // Сохраняем пользователя (каскадно сохранится LocalAuth)
         userService.create(user);
         log.debug("Пользователь создан в базе данных: {}", email);
-        
+
+        // Теперь LocalAuth имеет ID, можно сохранять историю паролей
+        passwordHistoryService.create(user, request.getPassword());
+        log.debug("История паролей создана в базе данных");
+
         String token = jwtService.generateEmailToken(user);
         EmailEvent userRegisteredEvent = createEmailEvent(user, EmailEventType.EMAIL_VERIFICATION, token);
-                
+
         kafkaProducer.sendEmailEvent(userRegisteredEvent);
         log.info("Отправлено сообщение для верификации email: {}", email);
     }
@@ -170,6 +179,7 @@ public class AuthenticationService {
      * @param request запрос с новым паролем
      * @throws InvalidTokenException если токен недействителен
      */
+    @Transactional
     public void resetPassword(ResetPasswordRequest request) {
         log.info("Запрос на сброс пароля");
         String token = request.getToken();
@@ -186,17 +196,18 @@ public class AuthenticationService {
 
         User user = userService.findById(jwtService.extractUserId(token));
 
-        if(user.getLocalAuth() == null) {
-            user.setLocalAuth(LocalAuth.builder()
-                    .user(user)
-                    .password(encodedPassword)
-                    .enabled(true)
-                    .build());
-        } else {
-            user.getLocalAuth().setPassword(encodedPassword);
-        }
+        LocalAuth localAuth = Optional.ofNullable(user.getLocalAuth())
+                .orElseGet(()->{
+                    LocalAuth localAuthNew = LocalAuth.builder()
+                            .user(user)
+                            .enabled(true)
+                            .build();
+                    user.setLocalAuth(localAuthNew);
+                    return localAuthNew;
+                });
+        localAuth.setPassword(encodedPassword);
 
-        passwordHistoryService.savePassword(user, password);
+        passwordHistoryService.create(user, password);
         userService.update(user);
         refreshTokenService.revokeAllUserTokens(token);
 

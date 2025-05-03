@@ -3,7 +3,6 @@ package ru.zeker.authenticationservice.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import ru.zeker.authenticationservice.domain.model.entity.RefreshToken;
 import ru.zeker.authenticationservice.domain.model.entity.User;
 import ru.zeker.authenticationservice.exception.TokenExpiredException;
@@ -36,7 +35,6 @@ public class RefreshTokenService {
      * @param user пользователь, для которого создается токен
      * @return строка refresh-токена
      */
-    @Transactional
     public String createRefreshToken(User user) {
         log.debug("Создание нового refresh-токена для пользователя с ID: {}", user.getId());
         
@@ -65,7 +63,6 @@ public class RefreshTokenService {
      * @throws TokenExpiredException если токен истек или отозван
      * @throws TokenNotFoundException если токен не найден
      */
-    @Transactional
     public RefreshToken verifyRefreshToken(String token) {
         log.debug("Проверка refresh-токена");
 
@@ -92,7 +89,6 @@ public class RefreshTokenService {
      * @param token объект старого refresh-токена
      * @return строка нового refresh-токена
      */
-    @Transactional
     public String rotateRefreshToken(RefreshToken token) {
         log.debug("Обновление refresh-токена для пользователя с ID: {}", token.getUserId());
         
@@ -111,7 +107,6 @@ public class RefreshTokenService {
      *
      * @param token строка refresh-токена для отзыва
      */
-    @Transactional
     public void revokeRefreshToken(String token) {
         log.debug("Запрос на отзыв refresh-токена");
         
@@ -127,7 +122,6 @@ public class RefreshTokenService {
      *
      * @param token токен пользователя
      */
-    @Transactional
     public void revokeAllUserTokens(String token) {
         UUID userId = jwtService.extractUserId(token);
         log.info("Отзыв всех refresh-токенов для пользователя с ID: {}", userId);

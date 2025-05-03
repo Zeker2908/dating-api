@@ -7,7 +7,10 @@ import org.springframework.security.authentication.AuthenticationCredentialsNotF
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import ru.zeker.authenticationservice.domain.dto.request.BindPasswordRequest;
+import ru.zeker.authenticationservice.domain.model.entity.LocalAuth;
 import ru.zeker.authenticationservice.domain.model.entity.User;
 import ru.zeker.authenticationservice.exception.UserAlreadyExistsException;
 import ru.zeker.authenticationservice.exception.UserNotFoundException;
@@ -38,27 +41,24 @@ public class UserService {
                 .orElseThrow(() -> new UserNotFoundException("Пользователь с ID " + id + " не найден"));
     }
 
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRED)
     public User create(@NotNull User user) {
         if (repository.existsByEmail(user.getEmail())) {
             log.warn("Попытка создания дубликата пользователя: {}", user.getEmail());
             throw new UserAlreadyExistsException("Пользователь с email " + user.getEmail() + " уже существует");
         }
 
-        String rawPassword = user.getPassword();
-        user.getLocalAuth().setPassword(passwordEncoder.encode(rawPassword));
         repository.save(user);
-        passwordHistoryService.savePassword(user, rawPassword);
         log.info("Создан новый пользователь с ID: {}", user.getId());
         return user;
 
     }
 
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRED)
     public User update(@NotNull User updatedUser) {
         User existingUser = repository.findById(updatedUser.getId())
                 .orElseThrow(() -> new UserNotFoundException("Пользователь с ID " + updatedUser.getId() + " не найден"));
-        
+
         if (!existingUser.getEmail().equals(updatedUser.getEmail()) &&
                 repository.existsByEmail(updatedUser.getEmail())) {
             throw new UserAlreadyExistsException("Пользователь с email " + updatedUser.getEmail() + " уже существует");
@@ -69,13 +69,30 @@ public class UserService {
         return savedUser;
     }
 
-    @Transactional
-    public void changePassword(String id, String oldPassword, String newPassword) {
+    @Transactional(propagation = Propagation.REQUIRED)
+    public void bindPassword(String userId, BindPasswordRequest request){
+        User user = findById(UUID.fromString(userId));
+
+        if(user.getLocalAuth()!=null){
+            throw new UserAlreadyExistsException("Пользователь уже привязал пароль");
+        }
+
+        user.setLocalAuth(LocalAuth.builder()
+                .user(user)
+                .password(passwordEncoder.encode(request.getPassword()))
+                .enabled(true)
+                .build());
+        repository.save(user);
+        passwordHistoryService.create(user, request.getPassword());
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED)
+    public void changePassword(String userId, String oldPassword, String newPassword) {
         if (oldPassword.equals(newPassword)) {
             throw new BadCredentialsException(SAME_PASSWORDS);
         }
 
-        User user = findById(UUID.fromString(id));
+        User user = findById(UUID.fromString(userId));
 
         if(user.getLocalAuth()==null){
             throw new IllegalStateException("Пользователь не зарегистрирован локально");
@@ -86,7 +103,7 @@ public class UserService {
         }
         
         // Сохраняем новый пароль в истории
-        passwordHistoryService.savePassword(user, newPassword);
+        passwordHistoryService.create(user, newPassword);
         
         // Обновляем пароль пользователя
         user.getLocalAuth().setPassword(passwordEncoder.encode(newPassword));
@@ -94,7 +111,7 @@ public class UserService {
         log.info("Пароль изменен для пользователя с ID: {}", user.getId());
     }
 
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRED)
     public void deleteById(UUID id) {
         if (!repository.existsById(id)) {
             throw new UserNotFoundException("Пользователь с ID " + id + " не найден");
@@ -103,7 +120,7 @@ public class UserService {
         log.info("Удален пользователь с ID: {}", id);
     }
 
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRED)
     public void deleteByEmail(String email) {
         User user = findByEmail(email);
         repository.delete(user);
