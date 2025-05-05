@@ -2,13 +2,13 @@ package ru.zeker.authenticationservice.controller;
 
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.ws.rs.core.HttpHeaders;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ru.zeker.authenticationservice.domain.dto.Tokens;
 import ru.zeker.authenticationservice.domain.dto.request.*;
@@ -21,9 +21,11 @@ import java.time.Duration;
 import static ru.zeker.authenticationservice.util.CookieUtils.createRefreshTokenCookie;
 
 /**
- * Контроллер для управления аутентификацией пользователей
+ * Контроллер для управления аутентификацией и авторизацией пользователей.
+ * Обеспечивает регистрацию, вход в систему, управление токенами доступа,
+ * восстановление пароля и подтверждение email.
  */
-@Slf4j
+@Validated
 @RestController
 @RequestMapping("/auth")
 @RequiredArgsConstructor
@@ -32,137 +34,144 @@ public class AuthenticationController {
     private final RefreshTokenService refreshTokenService;
 
     /**
-     * Регистрация нового пользователя с отправкой подтверждения по email через Kafka
+     * Регистрирует нового пользователя с отправкой подтверждения по email.
      *
-     * @param request данные для регистрации
-     * @return сообщение о статусе операции
+     * @param request {@link RegisterRequest} - данные для регистрации
+     * @return {@link ResponseEntity} с HTTP-статусом 201 (Created)
+     * @throws jakarta.validation.ConstraintViolationException если данные запроса невалидны
      */
     @PostMapping("/register")
-    public ResponseEntity<Void> registerWithKafka(@RequestBody @Valid RegisterRequest request) {
+    public ResponseEntity<Void> signup(@RequestBody @Valid RegisterRequest request) {
         authenticationService.register(request);
-
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
     /**
-     * Аутентификация пользователя
+     * Аутентифицирует пользователя и выдает токены доступа.
      *
-     * @param request данные для входа
-     * @param response HTTP-ответ для установки cookie
-     * @return токен доступа
+     * @param request {@link LoginRequest} - учетные данные пользователя
+     * @param response {@link HttpServletResponse} для установки refresh token в cookie
+     * @return {@link ResponseEntity} с {@link AuthenticationResponse} (access token)
+     * @throws jakarta.validation.ConstraintViolationException если данные запроса невалидны
+     * @throws org.springframework.security.authentication.BadCredentialsException если учетные данные неверны
      */
     @PostMapping("/login")
-    public ResponseEntity<AuthenticationResponse> login(@RequestBody @Valid LoginRequest request,
-                                                        HttpServletResponse response) {
+    public ResponseEntity<AuthenticationResponse> login(
+            @RequestBody @Valid LoginRequest request,
+            HttpServletResponse response) {
         Tokens tokens = authenticationService.login(request);
         ResponseCookie cookie = createRefreshTokenCookie(tokens.getRefreshToken(), Duration.ofDays(7));
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
-
         return ResponseEntity.ok(new AuthenticationResponse(tokens.getToken()));
     }
 
     /**
-     * Подтверждение email пользователя
+     * Подтверждает email пользователя по токену подтверждения.
      *
-     * @param request токен
-     * @return сообщение о статусе операции
+     * @param request {@link ConfirmationEmailRequest} - токен подтверждения
+     * @return {@link ResponseEntity} с HTTP-статусом 200 (OK)
+     * @throws jakarta.validation.ConstraintViolationException если токен невалиден
+     * @throws ru.zeker.authenticationservice.exception.TokenExpiredException если токен просрочен
      */
-    @PostMapping("/email-confirmation")
+    @PatchMapping("/email/verify")
     public ResponseEntity<Void> confirmEmail(@RequestBody @Valid ConfirmationEmailRequest request) {
         authenticationService.confirmEmail(request);
-
         return ResponseEntity.ok().build();
     }
 
     /**
-     * Обрабатывает запрос на повторную отправку подтверждения email.
+     * Повторно отправляет письмо с подтверждением email.
      *
-     * <p>Этот метод принимает POST-запрос с телом, содержащим объект {@link ResendVerificationRequest},
-     * который содержит информацию, необходимую для повторной отправки подтверждения email.
-     * Метод вызывает сервис аутентификации для выполнения этой операции и возвращает ответ с кодом состояния 202 Accepted.</p>
-     *
-     * @param request объект запроса, содержащий информацию для повторной отправки подтверждения email.
-     * @return {@code ResponseEntity<Void>} с кодом состояния 202 Accepted, указывающим, что запрос был принят для обработки.
+     * @param request {@link ResendVerificationRequest} - email пользователя
+     * @return {@link ResponseEntity} с HTTP-статусом 202 (Accepted)
+     * @throws jakarta.validation.ConstraintViolationException если email невалиден
      */
-    @PostMapping("/email-confirmation/resend")
-    public ResponseEntity<Void> resendConfirmationEmail(@RequestBody @Valid ResendVerificationRequest request) {
+    @PostMapping("/email/resend-verification")
+    public ResponseEntity<Void> resendConfirmationEmail(
+            @RequestBody @Valid ResendVerificationRequest request) {
         authenticationService.resendVerificationEmail(request);
-
         return ResponseEntity.accepted().build();
     }
 
     /**
-     * Запрос на восстановление пароля
+     * Инициирует процесс восстановления пароля.
      *
-     * @param request данные для восстановления пароля (email)
-     * @return сообщение о статусе операции
+     * @param request {@link UserUpdateRequest} - email пользователя
+     * @return {@link ResponseEntity} с HTTP-статусом 202 (Accepted)
+     * @throws jakarta.validation.ConstraintViolationException если email невалиден
      */
-    @PostMapping("/password-reset/request")
-    public ResponseEntity<Void> forgotPassword(@RequestBody @Valid ForgotPasswordRequest request) {
+    @PostMapping("/password/reset-request")
+    public ResponseEntity<Void> forgotPassword(@RequestBody @Valid UserUpdateRequest request) {
         authenticationService.forgotPassword(request);
         return ResponseEntity.accepted().build();
     }
 
     /**
-     * Сброс пароля пользователя по токену
+     * Сбрасывает пароль пользователя по токену восстановления.
      *
-     * @param request новый пароль
-     * @return сообщение о статусе операции
+     * @param request {@link ResetPasswordRequest} - новый пароль и токен
+     * @return {@link ResponseEntity} с HTTP-статусом 200 (OK)
+     * @throws jakarta.validation.ConstraintViolationException если данные запроса невалидны
+     * @throws ru.zeker.authenticationservice.exception.TokenExpiredException если токен просрочен
      */
-    @PostMapping("/password-reset")
+    @PatchMapping("/password")
     public ResponseEntity<Void> resetPassword(@RequestBody @Valid ResetPasswordRequest request) {
         authenticationService.resetPassword(request);
         return ResponseEntity.ok().build();
     }
 
     /**
-     * Обновление токена доступа
+     * Обновляет access token по refresh token.
      *
-     * @param refreshToken токен обновления из cookie
-     * @param response HTTP-ответ для установки обновленного cookie
-     * @return новый токен доступа
+     * @param refreshToken refresh token из cookie
+     * @param response {@link HttpServletResponse} для установки нового refresh token
+     * @return {@link ResponseEntity} с новым {@link AuthenticationResponse} (access token)
+     * @throws jakarta.validation.ConstraintViolationException если refresh token невалиден
+     * @throws ru.zeker.authenticationservice.exception.TokenExpiredException если refresh token просрочен
      */
-    @PostMapping("/refresh")
-    public ResponseEntity<AuthenticationResponse> refreshToken(@CookieValue(name = "refresh_token") @NotNull String refreshToken,
-                                                               HttpServletResponse response) {
+    @PostMapping("/token/refresh")
+    public ResponseEntity<AuthenticationResponse> refreshToken(
+            @CookieValue(name = "refresh_token") @NotBlank String refreshToken,
+            HttpServletResponse response) {
         Tokens tokens = authenticationService.refreshToken(refreshToken);
         ResponseCookie cookie = createRefreshTokenCookie(tokens.getRefreshToken(), Duration.ofDays(7));
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
-
         return ResponseEntity.ok(new AuthenticationResponse(tokens.getToken()));
     }
 
     /**
-     * Выход пользователя из системы
+     * Выходит пользователя из текущей сессии.
      *
-     * @param refreshToken токен обновления из cookie
-     * @param response HTTP-ответ для очистки cookie
-     * @return статус операции
+     * @param refreshToken refresh token из cookie
+     * @param response {@link HttpServletResponse} для очистки cookie
+     * @return {@link ResponseEntity} с HTTP-статусом 204 (No Content)
+     * @throws jakarta.validation.ConstraintViolationException если refresh token невалиден
      */
-    @PostMapping("/logout")
-    public ResponseEntity<Void> logout(@CookieValue(name = "refresh_token") String refreshToken,
-                                       HttpServletResponse response) {
+    @DeleteMapping("/sessions/current")
+    public ResponseEntity<Void> logout(
+            @CookieValue(name = "refresh_token") @NotBlank String refreshToken,
+            HttpServletResponse response) {
         refreshTokenService.revokeRefreshToken(refreshToken);
         ResponseCookie cookie = createRefreshTokenCookie("", Duration.ZERO);
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
-
         return ResponseEntity.noContent().build();
     }
 
     /**
-     * Выход пользователя из системы со всех устройств
+     * Выходит пользователя из всех активных сессий.
      *
-     * @param refreshToken токен обновления из cookie
-     * @param response HTTP-ответ для очистки cookie
-     * @return статус операции
+     * @param refreshToken refresh token из cookie
+     * @param response {@link HttpServletResponse} для очистки cookie
+     * @return {@link ResponseEntity} с HTTP-статусом 204 (No Content)
+     * @throws jakarta.validation.ConstraintViolationException если refresh token невалиден
      */
-    @PostMapping("/logout/all")
-    public ResponseEntity<Void> revokeAllRefreshTokens(@CookieValue(name = "refresh_token") String refreshToken,
-        HttpServletResponse response){
+    @DeleteMapping("/sessions")
+    public ResponseEntity<Void> revokeAllRefreshTokens(
+            @CookieValue(name = "refresh_token") @NotBlank String refreshToken,
+            HttpServletResponse response) {
         refreshTokenService.revokeAllUserTokens(refreshToken);
         ResponseCookie cookie = createRefreshTokenCookie("", Duration.ZERO);
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
         return ResponseEntity.noContent().build();
     }
-
 }

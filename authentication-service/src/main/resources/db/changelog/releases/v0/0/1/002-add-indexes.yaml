@@ -18,7 +18,6 @@ databaseChangeLog:
         - createIndex:
             indexName: idx_oauth_auth_provider_id
             tableName: oauth_auth
-            unique: true
             columns:
               - column:
                   name: provider

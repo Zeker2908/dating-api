@@ -18,6 +18,7 @@ import org.thymeleaf.spring6.SpringTemplateEngine;
 import ru.zeker.common.dto.kafka.EmailEvent;
 import ru.zeker.notificationservice.dto.EmailContext;
 import ru.zeker.notificationservice.exception.EmailSendingException;
+import ru.zeker.notificationservice.util.ThymeleafUtils;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Year;
@@ -120,21 +121,22 @@ public class EmailService {
      * @param event событие, инициирующее отправку email
      * @param subject тема письма
      * @param templateLocation путь к шаблону письма
-     * @param actionUrl URL для действия (подтверждение регистрации, сброс пароля и т.д.)
+     * @param payloadContext полезная нагрузка (ссылки подтверждение регистрации, сброс пароля и т.д.)
      * @return настроенный контекст для отправки письма
      */
     public EmailContext createEmailContext(
             EmailEvent event,
             String subject,
             String templateLocation,
-            String actionUrl
+            Map<String, Object> payloadContext
     ) {
         // Создание контекста для шаблона
         Map<String, Object> templateContext = new HashMap<>();
-        templateContext.put("actionUrl", actionUrl);
-        templateContext.put("supportEmail", from);
-        templateContext.put("currentYear", Year.now().getValue());
-        templateContext.put("companyName", companyName);
+        templateContext.put(ThymeleafUtils.CURRENT_YEAR, Year.now().getValue());
+        templateContext.put(ThymeleafUtils.COMPANY_NAME, companyName);
+        if (payloadContext != null) {
+            templateContext.putAll(payloadContext);
+        }
         
         // Создание контекста письма
         return EmailContext.builder()

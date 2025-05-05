@@ -75,7 +75,7 @@ public class KafkaConsumerConfig {
                 new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(consumerFactory);
         factory.setBatchListener(true);
-        factory.setConcurrency(16);
+        factory.setConcurrency(Runtime.getRuntime().availableProcessors() * 2);
         factory.setCommonErrorHandler(errorHandler);
         return factory;
     }

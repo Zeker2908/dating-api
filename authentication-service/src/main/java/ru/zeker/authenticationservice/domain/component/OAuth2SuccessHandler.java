@@ -14,7 +14,6 @@ import org.springframework.security.web.authentication.AuthenticationSuccessHand
 import org.springframework.stereotype.Component;
 import ru.zeker.authenticationservice.domain.model.entity.User;
 import ru.zeker.authenticationservice.exception.OAuth2ProviderException;
-import ru.zeker.authenticationservice.repository.UserRepository;
 import ru.zeker.authenticationservice.service.JwtService;
 import ru.zeker.authenticationservice.service.OAuth2Service;
 import ru.zeker.authenticationservice.util.CookieUtils;
@@ -28,7 +27,6 @@ import java.util.Map;
 @Slf4j
 public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
     private final JwtService jwtService;
-    private final UserRepository userRepository;
     private final OAuth2Service oAuth2Service;
     private final ObjectMapper objectMapper;
 
@@ -36,8 +34,9 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
      * Обработчик успешной аутентификации OAuth2.
      * <p>
      *     Если пользователь не найден, то регистрирует его.
+     *     Если пользователь найден, но у него нет OAuth2 аутентификации в бд, то добавляет ее.
      *     Если пользователь найден, то генерирует токены доступа и обновления.
-     *     Если аутентификация не удалась, то перенаправляет на /api/v1/oauth2/failure.
+     *     Если аутентификация не удалась, то возвращает данные ошибки.
      * </p>
      * @param request        HTTP-запрос
      * @param response       HTTP-ответ
@@ -59,19 +58,8 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
             }
             log.info("OAuth2Provider получен: {}", provider);
 
-            Boolean emailVerified = oAuth2User.getAttribute("email_verified");
-            String email = oAuth2User.getAttribute("email");
-            log.info("Обработка пользователя OAuth2: email={}, emailVerified={}", email, emailVerified);
-            
-            if (emailVerified == null || !emailVerified) {
-                log.warn("Ошибка аутентификации OAuth2: адрес электронной почты не проверен для email={}", email);
-                throw new OAuth2ProviderException("Email не верифицирован");
-            }
-            
-            User user = userRepository.findByEmail(email).orElseGet(() -> {
-                log.info("Пользователь не найден, регистрация нового пользователя с адресом электронной почты={}", email);
-                return oAuth2Service.register(oAuth2User, provider);
-            });
+            User user = oAuth2Service.processOauth2User(oAuth2User, provider);
+
             log.debug("Пользователь разрешен: id={}, email={}, enabled={}", user.getId(), user.getEmail(), user.isEnabled());
 
             String accessToken = jwtService.generateAccessToken(user);

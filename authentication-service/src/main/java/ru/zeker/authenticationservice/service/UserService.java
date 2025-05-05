@@ -22,9 +22,6 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class UserService {
-    private static final String OLD_PASSWORD_MISMATCH = "Старый пароль не совпадает";
-    private static final String SAME_PASSWORDS = "Новый пароль должен отличаться от старого";
-    
     private final UserRepository repository;
     private final PasswordHistoryService passwordHistoryService;
     private final PasswordEncoder passwordEncoder;
@@ -44,7 +41,6 @@ public class UserService {
     @Transactional(propagation = Propagation.REQUIRED)
     public User create(@NotNull User user) {
         if (repository.existsByEmail(user.getEmail())) {
-            log.warn("Попытка создания дубликата пользователя: {}", user.getEmail());
             throw new UserAlreadyExistsException("Пользователь с email " + user.getEmail() + " уже существует");
         }
 
@@ -56,17 +52,9 @@ public class UserService {
 
     @Transactional(propagation = Propagation.REQUIRED)
     public User update(@NotNull User updatedUser) {
-        User existingUser = repository.findById(updatedUser.getId())
-                .orElseThrow(() -> new UserNotFoundException("Пользователь с ID " + updatedUser.getId() + " не найден"));
-
-        if (!existingUser.getEmail().equals(updatedUser.getEmail()) &&
-                repository.existsByEmail(updatedUser.getEmail())) {
-            throw new UserAlreadyExistsException("Пользователь с email " + updatedUser.getEmail() + " уже существует");
-        }
-        
-        User savedUser = repository.save(updatedUser);
-        log.info("Обновлен пользователь с ID: {}", savedUser.getId());
-        return savedUser;
+        repository.save(updatedUser);
+        log.info("Обновлен пользователь с ID: {}", updatedUser.getId());
+        return updatedUser;
     }
 
     @Transactional(propagation = Propagation.REQUIRED)
@@ -84,12 +72,13 @@ public class UserService {
                 .build());
         repository.save(user);
         passwordHistoryService.create(user, request.getPassword());
+        log.info("Пользователь {} привязал пароль", user.getEmail());
     }
 
     @Transactional(propagation = Propagation.REQUIRED)
     public void changePassword(String userId, String oldPassword, String newPassword) {
         if (oldPassword.equals(newPassword)) {
-            throw new BadCredentialsException(SAME_PASSWORDS);
+            throw new BadCredentialsException("Новый пароль должен отличаться от старого");
         }
 
         User user = findById(UUID.fromString(userId));
@@ -99,17 +88,16 @@ public class UserService {
         }
 
         if (!passwordEncoder.matches(oldPassword, user.getPassword())) {
-            throw new AuthenticationCredentialsNotFoundException(OLD_PASSWORD_MISMATCH);
+            throw new AuthenticationCredentialsNotFoundException("Старый пароль не совпадает");
         }
         
-        // Сохраняем новый пароль в истории
         passwordHistoryService.create(user, newPassword);
         
-        // Обновляем пароль пользователя
         user.getLocalAuth().setPassword(passwordEncoder.encode(newPassword));
         repository.save(user);
         log.info("Пароль изменен для пользователя с ID: {}", user.getId());
     }
+
 
     @Transactional(propagation = Propagation.REQUIRED)
     public void deleteById(UUID id) {

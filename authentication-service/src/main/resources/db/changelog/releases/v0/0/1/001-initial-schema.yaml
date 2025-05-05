@@ -94,6 +94,10 @@ databaseChangeLog:
                   type: varchar(255)
                   constraints:
                     nullable: false
+        - addUniqueConstraint:
+            constraintName: uq_oauth_auth_provider_oauthid
+            tableName: oauth_auth
+            columnNames: provider, o_auth_id
 
   - changeSet:
       id: 004-create-password-history-table

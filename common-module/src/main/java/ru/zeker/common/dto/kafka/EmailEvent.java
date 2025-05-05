@@ -5,6 +5,8 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
+import java.util.Map;
+
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
@@ -20,7 +22,7 @@ public class EmailEvent {
     @Email
     private String email;
 
-    @NotBlank
-    private String token;
+    @NotNull
+    private Map<String, String> payload;
 
 }

@@ -7,6 +7,9 @@ import org.springframework.stereotype.Component;
 import ru.zeker.common.dto.kafka.EmailEvent;
 import ru.zeker.notificationservice.dto.EmailContext;
 import ru.zeker.notificationservice.service.EmailService;
+import ru.zeker.notificationservice.util.ThymeleafUtils;
+
+import java.util.Map;
 
 @Component
 @Slf4j
@@ -28,13 +31,13 @@ public class ForgotPasswordEmailContextStrategy implements EmailContextStrategy 
         log.debug("Настройка контекста письма для восстановления пароля: {}",
                 event.getEmail());
 
-        String resetPasswordUrl = applicationUrl + passwordResetUrl + "?token=" + event.getToken();
+        String resetPasswordUrl = applicationUrl + passwordResetUrl + "?token=" + event.getPayload().get("token");
 
         return emailService.createEmailContext(
                 event,
                 "Восстановление пароля в Dating API",
                 FORGOT_PASSWORD_TEMPLATE,
-                resetPasswordUrl
+                Map.of(ThymeleafUtils.ACTION_URL, resetPasswordUrl)
         );
     }
 }

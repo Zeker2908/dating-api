@@ -15,6 +15,10 @@ import java.util.UUID;
 @AllArgsConstructor
 @Builder
 @Entity
+@Table(
+        uniqueConstraints = @UniqueConstraint(columnNames = {"provider", "oAuthId"}),
+        indexes = @Index(columnList = "provider, oAuthId")
+)
 public class OAuthAuth {
     @Id
     private UUID id;

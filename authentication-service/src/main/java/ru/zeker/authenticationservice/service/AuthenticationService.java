@@ -21,6 +21,7 @@ import ru.zeker.common.dto.kafka.EmailEvent;
 import ru.zeker.common.dto.kafka.EmailEventType;
 import ru.zeker.common.util.JwtUtils;
 
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -52,19 +53,18 @@ public class AuthenticationService {
         String email = request.getEmail().toLowerCase();
         log.info("Регистрация нового пользователя с email: {}", email);
 
-        // Создаем пользователя с закодированным паролем
         User user = userMapper.toEntity(request, passwordEncoder);
 
-        // Сохраняем пользователя (каскадно сохранится LocalAuth)
         userService.create(user);
         log.debug("Пользователь создан в базе данных: {}", email);
 
-        // Теперь LocalAuth имеет ID, можно сохранять историю паролей
         passwordHistoryService.create(user, request.getPassword());
         log.debug("История паролей создана в базе данных");
 
         String token = jwtService.generateEmailToken(user);
-        EmailEvent userRegisteredEvent = createEmailEvent(user, EmailEventType.EMAIL_VERIFICATION, token);
+        EmailEvent userRegisteredEvent = createEmailEvent(user,
+                EmailEventType.EMAIL_VERIFICATION,
+                Map.of("token", token));
 
         kafkaProducer.sendEmailEvent(userRegisteredEvent);
         log.info("Отправлено сообщение для верификации email: {}", email);
@@ -160,14 +160,16 @@ public class AuthenticationService {
      *
      * @param request запрос с email пользователя
      */
-    public void forgotPassword(ForgotPasswordRequest request) {
+    public void forgotPassword(UserUpdateRequest request) {
         String email = request.getEmail().toLowerCase();
         log.info("Запрос на восстановление пароля для: {}", email);
         
         User user = userService.findByEmail(email);
         String token = jwtService.generateEmailToken(user);
         
-        EmailEvent event = createEmailEvent(user, EmailEventType.FORGOT_PASSWORD, token);
+        EmailEvent event = createEmailEvent(user,
+                EmailEventType.FORGOT_PASSWORD,
+                Map.of("token", token));
 
         kafkaProducer.sendEmailEvent(event);
         log.info("Письмо с инструкцией для восстановления пароля отправлено на email: {}", email);
@@ -237,7 +239,9 @@ public class AuthenticationService {
         }
 
         String token = jwtService.generateEmailToken(user);
-        EmailEvent event = createEmailEvent(user, EmailEventType.EMAIL_VERIFICATION, token);
+        EmailEvent event = createEmailEvent(user,
+                EmailEventType.EMAIL_VERIFICATION,
+                Map.of("token", token));
 
         kafkaProducer.sendEmailEvent(event);
         verificationCooldownService.updateCooldown(email);
@@ -245,12 +249,12 @@ public class AuthenticationService {
 
     }
 
-    private EmailEvent createEmailEvent(User user, EmailEventType type, String token) {
+    private EmailEvent createEmailEvent(User user, EmailEventType type, Map<String, String> data) {
         return EmailEvent.builder()
                 .type(type)
                 .id(UUID.randomUUID().toString())
                 .email(user.getEmail())
-                .token(token)
+                .payload(data)
                 .build();
     }
 }
