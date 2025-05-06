@@ -12,18 +12,12 @@ spring:
         locator:
           enabled: true
           lower-case-service-id: true
-        #  filters:
-         #   - name: Path
-          #    args:
-           #     patterns:
-            #      - "!/**/swagger-ui.html"
-             #     - "!/**/v3/api-docs/**"
       routes:
         # Авторизация пользователя (jwt/auth)
         - id: authentication-service-auth
           uri: lb://authentication-service
           predicates:
-            - Path=/api/v1/auth/**
+            - Path=/api/v${app.version}/auth/**
           filters:
             - StripPrefix=2
           metadata:
@@ -33,7 +27,7 @@ spring:
         - id: authentication-service-users
           uri: lb://authentication-service
           predicates:
-            - Path=/api/v1/users/**
+            - Path=/api/v${app.version}/users/**
           filters:
             - StripPrefix=2
 
@@ -60,7 +54,7 @@ spring:
         - id: authentication-service-admin
           uri: lb://authentication-service
           predicates:
-            - Path=/api/v1/admin/**
+            - Path=/api/v${app.version}/admin/**
           filters:
             - StripPrefix=2
           metadata:
@@ -74,6 +68,7 @@ spring:
             - StripPrefix=1
           metadata:
             auth-required: false
+          order: -1
 
         - id: authentication-service-docs-swagger
           uri: lb://authentication-service
@@ -83,6 +78,7 @@ spring:
             - StripPrefix=1
           metadata:
             auth-required: false
+          order: -1
 
       globalcors:
         cors-configurations:
