@@ -4,7 +4,7 @@ spring:
   application:
     name: notification-service
   kafka:
-    bootstrap-servers: localhost:9092
+    bootstrap-servers: ${KAFKA_HOST:localhost}
   mail:
     host: smtp.gmail.com
     port: 587
@@ -21,15 +21,20 @@ spring:
           ssl:
             trust: smtp.gmail.com
       debug: true
-
-  cloud:
-    config:
-      uri: http://localhost:8888
-      fail-fast: true
   data:
     redis:
-      host: localhost
-      port: 6380
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6380}
       database: 0
+eureka:
+  client:
+    service-url:
+      defaultZone: http://${EUREKA_HOST:localhost}/eureka
 app:
   frontend-url: http://localhost:3000
+  company-name: Dating Application
+  redis:
+    duration: 15
+  links:
+    email-verification: /email-confirmation
+    password-reset: /password-reset

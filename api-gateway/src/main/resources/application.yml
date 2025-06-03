@@ -4,9 +4,6 @@ spring:
   main:
     web-application-type: reactive
   cloud:
-    config:
-      uri: http://localhost:8888
-      fail-fast: true
     gateway:
       discovery:
         locator:
@@ -111,12 +108,27 @@ spring:
 server:
   port: 8080
 
+jwt:
+  public-key-path: ${PUBLIC_KEY}
+  access:
+    expiration: 900000
+  refresh:
+    expiration: 604800000
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://${EUREKA_HOST:localhost}/eureka
+
 logging:
   level:
     root: INFO
     org.springframework.security: DEBUG
     eureka: INFO
     ru.zeker: DEBUG
+
+app:
+  version: 1
 
 springdoc:
   api-docs:

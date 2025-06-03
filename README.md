@@ -60,9 +60,9 @@
 # Генерация приватных ключей
 mkdir secrets/keys
 cd secrets/keys
-openssl ecparam -name prime256v1 -genkey -noout -out /tmp/ec-private.pem
-openssl pkcs8 -topk8 -nocrypt -in /tmp/ec-private.pem -out /tmp/private-key.pem
-openssl ec -in /tmp/private-key.pem -pubout -out /tmp/public-key.pem
+openssl ecparam -name prime256v1 -genkey -noout -out ec-private.pem
+openssl pkcs8 -topk8 -nocrypt -in ec-private.pem -out private.pem
+openssl ec -in private-key.pem -pubout -out public.pem
 ```
 
 ```bash

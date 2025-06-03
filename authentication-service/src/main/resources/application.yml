@@ -3,10 +3,6 @@ server:
 spring:
   application:
     name: authentication-service
-  cloud:
-    config:
-      uri: http://localhost:8888
-      fail-fast: true
   security:
     oauth2:
       client:
@@ -20,7 +16,7 @@ spring:
               - profile
               - openid
   kafka:
-    bootstrap-servers: localhost:9092
+    bootstrap-servers: ${KAFKA_HOST:localhost}
     admin:
       properties:
         offsets.topic.replication-factor: 1
@@ -28,14 +24,14 @@ spring:
         transactions.state.log.min.isr: 1
   data:
     redis:
-      host: localhost
-      port: 6379
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
       database: 0
   datasource:
-    url: jdbc:postgresql://localhost:5432/users
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost:5432}/users
     driver-class-name: org.postgresql.Driver
-    username: admin
-    password: admin
+    username: ${POSTGRES_USERNAME:admin}
+    password: ${POSTGRES_PASSWORD:admin}
   jpa:
     hibernate:
       ddl-auto: validate
@@ -55,8 +51,12 @@ logging:
     eureka: INFO
     ru.zeker: DEBUG
 jwt:
-  private-key: ${PRIVATE_KEY}
-
+  private-key-path: ${PRIVATE_KEY}
+  public-key-path: ${PUBLIC_KEY}
+  access:
+    expiration: 900000
+  refresh:
+    expiration: 604800000
 springdoc:
   api-docs:
     enabled: true
@@ -64,3 +64,17 @@ springdoc:
   swagger-ui:
     enabled: true
     path: /swagger-ui.html
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://${EUREKA_HOST:localhost}/eureka
+
+app:
+  domain: http://localhost:8080
+  version: 1
+  admin:
+    username: ${ADMIN_EMAIL:admin@admin.com}
+  security:
+    password-history:
+      max-count: 5

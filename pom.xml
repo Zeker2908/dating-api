@@ -1,0 +1,103 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+                             https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>ru.zeker</groupId>
+    <artifactId>dating-api</artifactId>
+    <version>1.0.0</version>
+    <packaging>pom</packaging>
+    <name>dating-api</name>
+
+    <properties>
+        <java.version>21</java.version>
+        <spring.boot.version>3.4.4</spring.boot.version>
+        <jwt.version>0.11.5</jwt.version>
+        <lombok.version>1.18.36</lombok.version>
+        <mapstruct.version>1.6.3</mapstruct.version>
+        <spring-cloud.version>2024.0.1</spring-cloud.version>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <!-- BOM Spring Boot -->
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-dependencies</artifactId>
+                <version>${spring.boot.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <!-- Версия Lombok -->
+            <dependency>
+                <groupId>org.projectlombok</groupId>
+                <artifactId>lombok</artifactId>
+                <version>${lombok.version}</version>
+            </dependency>
+            <!-- JJWT -->
+            <dependency>
+                <groupId>io.jsonwebtoken</groupId>
+                <artifactId>jjwt-api</artifactId>
+                <version>${jwt.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.jsonwebtoken</groupId>
+                <artifactId>jjwt-impl</artifactId>
+                <version>${jwt.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.jsonwebtoken</groupId>
+                <artifactId>jjwt-jackson</artifactId>
+                <version>${jwt.version}</version>
+            </dependency>
+            <!-- Другие управляемые зависимости… -->
+        </dependencies>
+    </dependencyManagement>
+
+    <modules>
+        <module>common-module</module>
+        <module>authentication-service</module>
+        <module>notification-service</module>
+        <module>api-gateway</module>
+        <module>discovery-service</module>
+    </modules>
+
+    <build>
+        <plugins>
+            <!-- Компиляторный плагин оставить без изменений -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                        </path>
+                    </annotationProcessorPaths>
+                </configuration>
+            </plugin>
+
+            <!-- Правильная конфигурация spring-boot-maven-plugin: -->
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <version>${spring.boot.version}</version>
+                <executions>
+                    <execution>
+                        <!-- Goal repackage делает «fat-jar» с Main-Class -->
+                        <goals>
+                            <goal>repackage</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <!-- Опционально: вы всё ещё можете исключить из собранного JAR зависимость lombok,
+                     если она помечена как provided, но это уже не критично для repackage -->
+                <configuration>
+                    <excludeGroupIds>org.projectlombok</excludeGroupIds>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>

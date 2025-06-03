@@ -91,6 +91,7 @@ services:
       - "8081:8081"
     environment:
       PRIVATE_KEY: file:/app/keys/private.pem
+      PUBLIC_KEY: file:/app/keys/public.pem
       POSTGRES_HOST: postgres_user:5432
       POSTGRES_USERNAME: admin
       POSTGRES_PASSWORD: admin
@@ -100,7 +101,7 @@ services:
       KAFKA_HOST: kafka:9092
       CLIENT_ID: ${CLIENT_ID}
       CLIENT_SECRET: ${CLIENT_SECRET}
-      ADMIN_EMAIL: ${ADMIN_EMAIL:admin@admin.ru}
+      ADMIN_EMAIL: ${ADMIN_EMAIL}
     depends_on:
       - discovery-service
       - postgres_user
@@ -109,6 +110,7 @@ services:
       - api-gateway
     volumes:
       - ./secrets/keys/private.pem:/app/keys/private.pem:ro
+      - ./secrets/keys/public.pem:/app/keys/public.pem:ro
     labels:
       amplicode.image: springboot
   notification-service:
