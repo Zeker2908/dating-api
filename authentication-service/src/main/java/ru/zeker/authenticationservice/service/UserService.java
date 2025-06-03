@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import ru.zeker.authenticationservice.domain.dto.request.BindPasswordRequest;
+import ru.zeker.authenticationservice.domain.mapper.UserMapper;
 import ru.zeker.authenticationservice.domain.model.entity.LocalAuth;
 import ru.zeker.authenticationservice.domain.model.entity.User;
 import ru.zeker.authenticationservice.exception.UserAlreadyExistsException;
@@ -25,6 +26,7 @@ public class UserService {
     private final UserRepository repository;
     private final PasswordHistoryService passwordHistoryService;
     private final PasswordEncoder passwordEncoder;
+    private final UserMapper userMapper;
 
     @Transactional(readOnly = true)
     public User findByEmail(String email) {
@@ -65,11 +67,7 @@ public class UserService {
             throw new UserAlreadyExistsException("Пользователь уже привязал пароль");
         }
 
-        user.setLocalAuth(LocalAuth.builder()
-                .user(user)
-                .password(passwordEncoder.encode(request.getPassword()))
-                .enabled(true)
-                .build());
+        user.setLocalAuth(userMapper.toLocalAuth(user, request, passwordEncoder));
         repository.save(user);
         passwordHistoryService.create(user, request.getPassword());
         log.info("Пользователь {} привязал пароль", user.getEmail());

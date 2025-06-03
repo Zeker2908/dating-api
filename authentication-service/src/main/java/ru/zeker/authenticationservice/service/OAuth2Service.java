@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.zeker.authenticationservice.domain.dto.OAuth2UserInfo;
 import ru.zeker.authenticationservice.domain.mapper.UserMapper;
+import ru.zeker.authenticationservice.domain.model.entity.OAuthAuth;
 import ru.zeker.authenticationservice.domain.model.entity.User;
 import ru.zeker.authenticationservice.domain.model.enums.OAuth2Provider;
 import ru.zeker.authenticationservice.exception.OAuth2ProviderException;
@@ -69,12 +70,12 @@ public class OAuth2Service {
     private User update(User user, OAuth2UserInfo userInfo, OAuth2Provider oAuth2Provider) {
         if (user.getOauthAuth() == null) {
             userMapper.setOAuthAuth(user, userInfo, oAuth2Provider);
+            User updatedUser = userRepository.save(user);
             log.info("Пользователю успешно добавлена OAuth2 аутентификация");
-            return userRepository.save(user);
+            return updatedUser;
         }
         return user;
     }
-
     /**
      * Регистрирует нового пользователя на основе информации, полученной от OAuth2-провайдера.
      *

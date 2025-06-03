@@ -3,6 +3,7 @@ package ru.zeker.authenticationservice.domain.mapper;
 import org.mapstruct.*;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import ru.zeker.authenticationservice.domain.dto.OAuth2UserInfo;
+import ru.zeker.authenticationservice.domain.dto.request.BindPasswordRequest;
 import ru.zeker.authenticationservice.domain.dto.request.RegisterRequest;
 import ru.zeker.authenticationservice.domain.dto.response.UserResponse;
 import ru.zeker.authenticationservice.domain.model.entity.LocalAuth;
@@ -25,6 +26,13 @@ public interface UserMapper {
 
     @Mapping(target = "role", constant = "USER")
     User toOAuthEntity(OAuth2UserInfo userInfo, OAuth2Provider provider);
+
+    @Mapping(target = "password", source = "request.password")
+    @Mapping(target = "user", source = "user")
+    @Mapping(target = "enabled", constant = "true")
+    LocalAuth toLocalAuth(User user, BindPasswordRequest request, @Context PasswordEncoder encoder);
+
+    OAuthAuth toOAuthAuth(User user, OAuth2UserInfo info, OAuth2Provider provider);
 
     @Mapping(target = "isLocalUser", expression = "java(user.getLocalAuth() != null)")
     @Mapping(target = "isOAuthUser", expression = "java(user.getOauthAuth() != null)")
@@ -50,5 +58,12 @@ public interface UserMapper {
                 .oAuthId(userInfo.getOAuthId())
                 .provider(provider)
                 .build());
+    }
+
+    @AfterMapping
+    default void encodePassword(@MappingTarget LocalAuth auth,
+                                BindPasswordRequest request,
+                                @Context PasswordEncoder encoder) {
+        auth.setPassword(encoder.encode(request.getPassword()));
     }
 }

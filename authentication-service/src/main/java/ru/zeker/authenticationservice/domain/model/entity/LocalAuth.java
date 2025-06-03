@@ -3,6 +3,7 @@ package ru.zeker.authenticationservice.domain.model.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.proxy.HibernateProxy;
+import ru.zeker.common.model.BaseEntity;
 
 import java.util.List;
 import java.util.Objects;
@@ -15,11 +16,7 @@ import java.util.UUID;
 @AllArgsConstructor
 @Builder
 @Entity
-public class LocalAuth {
-
-    @Id
-    private UUID id;
-
+public class LocalAuth extends BaseEntity {
     @OneToOne
     @MapsId
     @JoinColumn(name = "user_id", nullable = false)

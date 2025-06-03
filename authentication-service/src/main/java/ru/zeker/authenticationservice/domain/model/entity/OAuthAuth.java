@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.proxy.HibernateProxy;
 import ru.zeker.authenticationservice.domain.model.enums.OAuth2Provider;
+import ru.zeker.common.model.BaseEntity;
 
 import java.util.Objects;
 import java.util.UUID;
@@ -19,10 +20,7 @@ import java.util.UUID;
         uniqueConstraints = @UniqueConstraint(columnNames = {"provider", "oAuthId"}),
         indexes = @Index(columnList = "provider, oAuthId")
 )
-public class OAuthAuth {
-    @Id
-    private UUID id;
-
+public class OAuthAuth extends BaseEntity {
     @OneToOne
     @MapsId
     @JoinColumn(name = "user_id", nullable = false)

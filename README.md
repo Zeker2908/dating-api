@@ -71,6 +71,9 @@ docker compose up --build
 
 ---
 
+Документация доступна после запуска
+* [Swagger UI](http://localhost:8080/swagger-ui/index.html)
+
 ## ✅ Реализовано
 
 ### Auth Service
