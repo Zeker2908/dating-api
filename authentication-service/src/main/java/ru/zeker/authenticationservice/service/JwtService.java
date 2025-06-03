@@ -11,6 +11,7 @@ import ru.zeker.authenticationservice.exception.InvalidTokenException;
 import ru.zeker.common.config.JwtProperties;
 import ru.zeker.common.util.JwtUtils;
 
+import java.io.IOException;
 import java.security.Key;
 import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
@@ -31,11 +32,13 @@ public class JwtService {
     @PostConstruct
     public void init() {
         try {
-            String key = jwtProperties.getPrivateKey();
-            if (key.isEmpty()) {
+            if (jwtProperties.getPrivateKeyPath() == null || !jwtProperties.getPrivateKeyPath().exists()) {
                 throw new IllegalStateException("Приватный ключ не задан");
             }
-            String privateKeyPEM = key
+
+            String privateKeyContent = new String(jwtProperties.getPrivateKeyPath().getInputStream().readAllBytes());
+
+            String privateKeyPEM = privateKeyContent
                     .replace("-----BEGIN PRIVATE KEY-----", "")
                     .replace("-----END PRIVATE KEY-----", "")
                     .replaceAll("\\s", "");
@@ -51,7 +54,7 @@ public class JwtService {
             throw new IllegalStateException("EC алгоритм не поддерживается", e);
         } catch (InvalidKeySpecException e) {
             throw new IllegalStateException("Неверный формат ключа", e);
-        } catch (IllegalArgumentException e) {
+        } catch (IllegalArgumentException | IOException e) {
             throw new IllegalStateException("Ошибка декодирования Base64", e);
         }
     }

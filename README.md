@@ -13,7 +13,7 @@
 * **Auth Service**: регистрация пользователей, подтверждение email, управление паролями, аутентификация на основе JWT
 * **API Gateway**: центральная точка входа, валидация JWT, обогащение заголовков
 * **Notification Service**: отправка email через Kafka с шаблонами Thymeleaf
-* **Discovery & Config**: Eureka Server и Config Server (планируется отказаться)
+* **Discovery**: Eureka Server
 * **Инфраструктура**: PostgreSQL, Redis, Kafka + Zookeeper через Docker Compose
 
 ---
@@ -47,14 +47,23 @@
 * Переменные окружения:
 
   ```bash
-  export CONFIG_REPO_URI=<URL_репозитория_с_конфигурацией>
-  export CONFIG_REPO_USER=<git_пользователь>
-  export GITHUB_PASSWORD=<git_token>
+  export CLIENT_ID=<CLIEND_ID для Google OA2uth>
+  export CLIENT_SECRET=<CLIENT_SECRET для Google OA2uth>
   export ADMIN_USERNAME=<admin_email>
+  export MAIL_USERNAME=<MAIL_USERNAME для smtp>
+  export MAIL_PASSWORD=<MAIL_PASSWORD для smtp>
   
   ```
 
 ### Запуск инфраструктуры
+```bash
+# Генерация приватных ключей
+mkdir secrets/keys
+cd secrets/keys
+openssl ecparam -name prime256v1 -genkey -noout -out /tmp/ec-private.pem
+openssl pkcs8 -topk8 -nocrypt -in /tmp/ec-private.pem -out /tmp/private-key.pem
+openssl ec -in /tmp/private-key.pem -pubout -out /tmp/public-key.pem
+```
 
 ```bash
 # из корня репозитория
@@ -64,7 +73,6 @@ docker compose up --build
 Запустятся:
 
 * Eureka Server (`localhost:8761`)
-* Config Server (`localhost:8888`)
 * PostgreSQL (`localhost:5432`)
 * Redis (6379 & 6380)
 * Kafka & Zookeeper

@@ -4,14 +4,15 @@ import lombok.Data;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.io.Resource;
 
 
 @Data
 @Configuration
 @ConfigurationProperties(prefix = "jwt")
 public class JwtProperties {
-    private String privateKey;
-    private String publicKey;
+    private Resource privateKeyPath;
+    private Resource publicKeyPath;
     private Access access;
     private Refresh refresh;
 

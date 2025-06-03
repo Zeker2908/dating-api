@@ -1,32 +1,4 @@
 services:
-  eureka-server:
-    build:
-      context: ./discovery-service
-      dockerfile: Dockerfile
-    container_name: eureka-server
-    ports:
-      - "8761:8761"
-    networks:
-      - microservices-net
-    healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8761/actuator/health" ]
-      interval: 5s
-      timeout: 10s
-      retries: 3
-
-  config-server:
-    build:
-      context: ./config-server
-      dockerfile: Dockerfile
-    container_name: config-server
-    environment:
-      CONFIG_REPO_URI: ${CONFIG_REPO_URI}
-      CONFIG_REPO_USER: ${CONFIG_REPO_USER}
-      GITHUB_PASSWORD: ${GITHUB_PASSWORD}
-    ports:
-      - "8888:8888"
-    networks:
-      - microservices-net
   postgres_user:
     image: postgres:15
     container_name: postgres_user
@@ -66,8 +38,10 @@ services:
       - zookeeper
     environment:
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
-      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,PLAINTEXT_HOST://0.0.0.0:29092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
 
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
@@ -75,12 +49,110 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
 
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
-
-      KAFKA_LOG_RETENTION_MS: -1  # Отключаем удаление логов (для тестов)
     ports:
       - "9092:9092"
+      - "29092:29092"
     volumes:
       - kafka_data:/data
+  api-gateway:
+    image: api-gateway:latest
+    build:
+      context: .
+      dockerfile: api-gateway/Dockerfile
+      args:
+        DOCKER_BUILDKIT: 1
+    restart: "no"
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health || exit 1
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
+      retries: 5
+    environment:
+      PUBLIC_KEY: file:/app/keys/public.pem
+      EUREKA_HOST: discovery-service:8761
+    depends_on:
+      - discovery-service
+    volumes:
+      - ./secrets/keys/public.pem:/app/keys/public.pem:ro
+    labels:
+      amplicode.image: springboot
+  authentication-service:
+    image: authentication-service:latest
+    build:
+      context: .
+      dockerfile: authentication-service/Dockerfile
+      args:
+        DOCKER_BUILDKIT: 1
+    restart: "no"
+    ports:
+      - "8081:8081"
+    environment:
+      PRIVATE_KEY: file:/app/keys/private.pem
+      POSTGRES_HOST: postgres_user:5432
+      POSTGRES_USERNAME: admin
+      POSTGRES_PASSWORD: admin
+      EUREKA_HOST: discovery-service:8761
+      REDIS_HOST: redis-users
+      REDIS_PORT: 6379
+      KAFKA_HOST: kafka:9092
+      CLIENT_ID: ${CLIENT_ID}
+      CLIENT_SECRET: ${CLIENT_SECRET}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:admin@admin.ru}
+    depends_on:
+      - discovery-service
+      - postgres_user
+      - redis-users
+      - kafka
+      - api-gateway
+    volumes:
+      - ./secrets/keys/private.pem:/app/keys/private.pem:ro
+    labels:
+      amplicode.image: springboot
+  notification-service:
+    image: notification-service:latest
+    build:
+      context: .
+      dockerfile: notification-service/Dockerfile
+      args:
+        DOCKER_BUILDKIT: 1
+    restart: "no"
+    ports:
+      - "8082:8082"
+    environment:
+      KAFKA_HOST: kafka:9092
+      MAIL_USERNAME: ${MAIL_USERNAME}
+      MAIL_PASSWORD: ${MAIL_PASSWORD}
+      REDIS_HOST: redis-notifications
+      REDIS_PORT: 6380
+      EUREKA_HOST: discovery-service:8761
+    depends_on:
+      - discovery-service
+      - redis-notifications
+      - kafka
+      - api-gateway
+    labels:
+      amplicode.image: springboot
+  discovery-service:
+    image: discovery-service:latest
+    build:
+      context: .
+      dockerfile: discovery-service/Dockerfile
+      args:
+        DOCKER_BUILDKIT: 1
+    restart: "no"
+    ports:
+      - "8761:8761"
+    healthcheck:
+      test: wget --no-verbose --tries=1 --spider http://localhost:8761/actuator/health || exit 1
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
+      retries: 5
+    labels:
+      amplicode.image: springboot
 
 volumes:
   pgdata_users:
@@ -88,7 +160,4 @@ volumes:
   redisdata_user:
   redisdata_notification:
   kafka_data:
-
-networks:
-  microservices-net:
-    driver: bridge
+  env:

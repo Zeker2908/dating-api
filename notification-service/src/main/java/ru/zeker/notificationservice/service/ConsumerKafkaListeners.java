@@ -43,7 +43,6 @@ public class ConsumerKafkaListeners {
      */
     @KafkaListener(
             topics = "email-notification-events",
-            groupId = "notification-service",
             containerFactory = "batchEmailKafkaListenerContainerFactory"
     )
     void listenRegisteredEvents(

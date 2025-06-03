@@ -6,6 +6,7 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.kafka.annotation.EnableKafka;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
@@ -23,6 +24,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Configuration
+@EnableKafka
 public class KafkaConsumerConfig {
 
     @Value("${spring.kafka.bootstrap-servers}")
@@ -62,18 +64,18 @@ public class KafkaConsumerConfig {
     }
 
     @Bean
-    public ConsumerFactory<String, Object> consumerFactory(Map<String, Object> consumerConfig) {
-        return new DefaultKafkaConsumerFactory<>(consumerConfig);
+    public ConsumerFactory<String, Object> consumerFactory() {
+        return new DefaultKafkaConsumerFactory<>(consumerConfig());
     }
 
     @Bean
     public ConcurrentKafkaListenerContainerFactory<String, Object>
-    batchEmailKafkaListenerContainerFactory(ConsumerFactory<String, Object> consumerFactory,
+    batchEmailKafkaListenerContainerFactory(
                                             CommonErrorHandler errorHandler)
     {
         ConcurrentKafkaListenerContainerFactory<String, Object> factory =
                 new ConcurrentKafkaListenerContainerFactory<>();
-        factory.setConsumerFactory(consumerFactory);
+        factory.setConsumerFactory(consumerFactory());
         factory.setBatchListener(true);
         factory.setConcurrency(Runtime.getRuntime().availableProcessors() * 2);
         factory.setCommonErrorHandler(errorHandler);

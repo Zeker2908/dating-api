@@ -29,13 +29,13 @@ public class KafkaProducerConfig {
     }
 
     @Bean
-    public DefaultKafkaProducerFactory<String, Object> producerFactory(Map<String, Object> producerConfig) {
-        return new DefaultKafkaProducerFactory<>(producerConfig);
+    public DefaultKafkaProducerFactory<String, Object> producerFactory() {
+        return new DefaultKafkaProducerFactory<>(producerConfig());
     }
 
     @Bean
-    public KafkaTemplate<String, Object> kafkaTemplate(DefaultKafkaProducerFactory<String, Object> producerFactory) {
-        return new KafkaTemplate<>(producerFactory);
+    public KafkaTemplate<String, Object> kafkaTemplate() {
+        return new KafkaTemplate<>(producerFactory());
     }
 
 
