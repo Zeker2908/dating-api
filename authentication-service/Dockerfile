@@ -1,7 +1,7 @@
 FROM maven:3.9.9 AS builder
 WORKDIR /application
 COPY . .
-RUN --mount=type=cache,target=/root/.m2 mvn clean install -pl authentication-service -Dmaven.test.skip
+RUN --mount=type=cache,target=/root/.m2 mvn clean package -pl authentication-service -am -Dmaven.test.skip
 
 FROM bellsoft/liberica-openjre-alpine:21-cds AS layers
 WORKDIR /application

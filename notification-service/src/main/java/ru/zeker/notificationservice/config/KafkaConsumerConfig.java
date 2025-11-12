@@ -43,41 +43,33 @@ public class KafkaConsumerConfig {
     private int maxAttempts;
 
     @Bean
-    public Map<String, Object> consumerConfig() {
+    public ConsumerFactory<String, Object> consumerFactory() {
         Map<String, Object> props = new HashMap<>();
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         props.put(ConsumerConfig.GROUP_ID_CONFIG, "notification-service");
 
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, ErrorHandlingDeserializer.class);
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ErrorHandlingDeserializer.class);
-
         props.put(ErrorHandlingDeserializer.KEY_DESERIALIZER_CLASS, StringDeserializer.class);
         props.put(ErrorHandlingDeserializer.VALUE_DESERIALIZER_CLASS, JsonDeserializer.class);
 
         props.put(JsonDeserializer.TRUSTED_PACKAGES, "*");
         props.put(JsonDeserializer.USE_TYPE_INFO_HEADERS, true);
 
-        props.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, 1000);
+        props.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, 500);
         props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
 
-        return props;
+        return new DefaultKafkaConsumerFactory<>(props);
     }
 
-    @Bean
-    public ConsumerFactory<String, Object> consumerFactory() {
-        return new DefaultKafkaConsumerFactory<>(consumerConfig());
-    }
-
-    @Bean
+    @Bean("emailKafkaListenerContainerFactory")
     public ConcurrentKafkaListenerContainerFactory<String, Object>
-    batchEmailKafkaListenerContainerFactory(
-                                            CommonErrorHandler errorHandler)
-    {
+    emailKafkaListenerContainerFactory(ConsumerFactory<String, Object> consumerFactory,
+                                       CommonErrorHandler errorHandler) {
         ConcurrentKafkaListenerContainerFactory<String, Object> factory =
                 new ConcurrentKafkaListenerContainerFactory<>();
-        factory.setConsumerFactory(consumerFactory());
-        factory.setBatchListener(true);
-        factory.setConcurrency(Runtime.getRuntime().availableProcessors() * 2);
+        factory.setConsumerFactory(consumerFactory);
+        factory.setConcurrency(16);
         factory.setCommonErrorHandler(errorHandler);
         return factory;
     }

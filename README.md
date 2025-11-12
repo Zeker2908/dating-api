@@ -62,7 +62,7 @@ mkdir secrets/keys
 cd secrets/keys
 openssl ecparam -name prime256v1 -genkey -noout -out ec-private.pem
 openssl pkcs8 -topk8 -nocrypt -in ec-private.pem -out private.pem
-openssl ec -in private-key.pem -pubout -out public.pem
+openssl ec -in private.pem -pubout -out public.pem
 ```
 
 ```bash

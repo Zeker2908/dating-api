@@ -12,7 +12,7 @@ import lombok.Data;
 @Schema(description = "Запрос на повторную отправку письма подтверждения email")
 public class ResendVerificationRequest {
 
-    @Schema(description = "Email пользователя", example = "user@example.com", required = true)
+    @Schema(description = "Email пользователя", example = "user@example.com")
     @Email
     @NotBlank
     @Size(min = 8, max = 255, message = "Длина почты должна быть от 8 до 255 символов")

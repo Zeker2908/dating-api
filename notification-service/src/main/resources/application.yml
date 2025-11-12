@@ -26,10 +26,6 @@ spring:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6380}
       database: 0
-eureka:
-  client:
-    service-url:
-      defaultZone: http://${EUREKA_HOST:localhost}/eureka
 app:
   frontend-url: http://localhost:3000
   company-name: Dating Application

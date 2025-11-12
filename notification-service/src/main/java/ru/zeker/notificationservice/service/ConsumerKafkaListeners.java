@@ -15,7 +15,6 @@ import ru.zeker.notificationservice.dto.EmailContext;
 import ru.zeker.notificationservice.service.handlers.EmailContextStrategy;
 
 import java.time.Duration;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -39,20 +38,20 @@ public class ConsumerKafkaListeners {
      * Слушатель событий отправки email для пользователей.
      * Обрабатывает пакеты сообщений из топика 'email-notification-events'
      *
-     * @param records список записей с событиями отправки email для пользователей
+     * @param record список записей с событиями отправки email для пользователей
      */
     @KafkaListener(
             topics = "email-notification-events",
-            containerFactory = "batchEmailKafkaListenerContainerFactory"
+            containerFactory = "emailKafkaListenerContainerFactory"
     )
     void listenRegisteredEvents(
-            List<ConsumerRecord<String, EmailEvent>> records
+            ConsumerRecord<String, EmailEvent> record
     ) {
-        log.info("Получен пакет из {} сообщений", records.size());
+        log.info("Получено сообщение");
 
-        records.forEach(this::handleRecord);
+        handleRecord(record);
 
-        log.info("Обработка пакета событий завершена");
+        log.info("Обработка события завершена");
     }
 
     /**
@@ -84,11 +83,11 @@ public class ConsumerKafkaListeners {
     /**
      * Обрабатывает отдельное событие отправки email
      *
-     * @param record запись из Kafka
+     * @param record       запись из Kafka
      * @param emailContext контекст для отправки email
      */
     private void processEmailEvent(
-            ConsumerRecord<String, EmailEvent> record, 
+            ConsumerRecord<String, EmailEvent> record,
             EmailContext emailContext
     ) {
 
@@ -115,11 +114,10 @@ public class ConsumerKafkaListeners {
                 log.warn("Событие {} с ID {} уже было обработано", eventType, event.getId());
             }
 
-        } catch (RedisConnectionFailureException e){
+        } catch (RedisConnectionFailureException e) {
             log.error("Redis недоступен");
             throw e;
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             log.error("Ошибка обработки события {}: {}", eventType, e.getMessage(), e);
         }
 

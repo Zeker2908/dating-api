@@ -72,9 +72,6 @@ services:
       retries: 5
     environment:
       PUBLIC_KEY: file:/app/keys/public.pem
-      EUREKA_HOST: discovery-service:8761
-    depends_on:
-      - discovery-service
     volumes:
       - ./secrets/keys/public.pem:/app/keys/public.pem:ro
     labels:
@@ -95,7 +92,6 @@ services:
       POSTGRES_HOST: postgres_user:5432
       POSTGRES_USERNAME: admin
       POSTGRES_PASSWORD: admin
-      EUREKA_HOST: discovery-service:8761
       REDIS_HOST: redis-users
       REDIS_PORT: 6379
       KAFKA_HOST: kafka:9092
@@ -103,7 +99,6 @@ services:
       CLIENT_SECRET: ${CLIENT_SECRET}
       ADMIN_EMAIL: ${ADMIN_EMAIL}
     depends_on:
-      - discovery-service
       - postgres_user
       - redis-users
       - kafka
@@ -128,33 +123,28 @@ services:
       MAIL_USERNAME: ${MAIL_USERNAME}
       MAIL_PASSWORD: ${MAIL_PASSWORD}
       REDIS_HOST: redis-notifications
-      REDIS_PORT: 6380
-      EUREKA_HOST: discovery-service:8761
+      REDIS_PORT: 6379
     depends_on:
-      - discovery-service
       - redis-notifications
       - kafka
       - api-gateway
     labels:
       amplicode.image: springboot
-  discovery-service:
-    image: discovery-service:latest
-    build:
-      context: .
-      dockerfile: discovery-service/Dockerfile
-      args:
-        DOCKER_BUILDKIT: 1
-    restart: "no"
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
     ports:
-      - "8761:8761"
-    healthcheck:
-      test: wget --no-verbose --tries=1 --spider http://localhost:8761/actuator/health || exit 1
-      interval: 30s
-      timeout: 5s
-      start_period: 30s
-      retries: 5
+      - "8083:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+      KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
+      KAFKA_CLUSTERS_0_READONLY: "false"
+    depends_on:
+      - kafka
+      - zookeeper
     labels:
-      amplicode.image: springboot
+      amplicode.image: kafka-ui
 
 volumes:
   pgdata_users:

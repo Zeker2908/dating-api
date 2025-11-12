@@ -60,24 +60,10 @@
         <module>authentication-service</module>
         <module>notification-service</module>
         <module>api-gateway</module>
-        <module>discovery-service</module>
     </modules>
 
     <build>
         <plugins>
-            <!-- Компиляторный плагин оставить без изменений -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <annotationProcessorPaths>
-                        <path>
-                            <groupId>org.projectlombok</groupId>
-                            <artifactId>lombok</artifactId>
-                        </path>
-                    </annotationProcessorPaths>
-                </configuration>
-            </plugin>
 
             <!-- Правильная конфигурация spring-boot-maven-plugin: -->
             <plugin>
