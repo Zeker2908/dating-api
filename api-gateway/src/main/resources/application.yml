@@ -4,18 +4,12 @@ spring:
   main:
     web-application-type: reactive
   cloud:
-    config:
-      uri: http://localhost:8888
-      fail-fast: true
     gateway:
-      discovery:
-        locator:
-          enabled: true
-          lower-case-service-id: true
+      # discovery.locator теперь не нужен
       routes:
         # Авторизация пользователя (jwt/auth)
         - id: authentication-service-auth
-          uri: lb://authentication-service
+          uri: http://authentication-service:8081
           predicates:
             - Path=/api/v${app.version}/auth/**
           filters:
@@ -25,17 +19,17 @@ spring:
 
         # Управление пользователями
         - id: authentication-service-users
-          uri: lb://authentication-service
+          uri: http://authentication-service:8081
           predicates:
             - Path=/api/v${app.version}/users/**
           filters:
             - StripPrefix=2
 
-        # 1) Начало OAuth2‑Authorization Code Flow
+        # 1) Начало OAuth2-Authorization Code Flow
         - id: oauth2-authorization
-          uri: lb://authentication-service
+          uri: http://authentication-service:8081
           predicates:
-            - Path=/oauth2/authorization/**       # ловим запросы /oauth2/authorization/google
+            - Path=/oauth2/authorization/**
           filters:
             - RewritePath=/oauth2/authorization/(?<seg>.*), /oauth2/authorization/${seg}
           metadata:
@@ -43,16 +37,17 @@ spring:
 
         # 2) Callback от Google
         - id: oauth2-callback
-          uri: lb://authentication-service
+          uri: http://authentication-service:8081
           predicates:
-            - Path=/login/oauth2/code/**         # ловим /login/oauth2/code/google
+            - Path=/login/oauth2/code/**
           filters:
             - RewritePath=/login/oauth2/code/(?<seg>.*), /login/oauth2/code/${seg}
           metadata:
             auth-required: false
 
+        # Админка
         - id: authentication-service-admin
-          uri: lb://authentication-service
+          uri: http://authentication-service:8081
           predicates:
             - Path=/api/v${app.version}/admin/**
           filters:
@@ -60,8 +55,9 @@ spring:
           metadata:
             required-role: ADMIN
 
+        # Swagger (документация)
         - id: authentication-service-docs
-          uri: lb://authentication-service
+          uri: http://authentication-service:8081
           predicates:
             - Path=/authentication-service/v3/api-docs/**
           filters:
@@ -71,7 +67,7 @@ spring:
           order: -1
 
         - id: authentication-service-docs-swagger
-          uri: lb://authentication-service
+          uri: http://authentication-service:8081
           predicates:
             - Path=/authentication-service/swagger-ui.html
           filters:
@@ -107,16 +103,24 @@ spring:
             allow-credentials: true
             max-age: 3600
 
-
 server:
   port: 8080
+
+jwt:
+  public-key-path: ${PUBLIC_KEY}
+  access:
+    expiration: 900000
+  refresh:
+    expiration: 604800000
 
 logging:
   level:
     root: INFO
     org.springframework.security: DEBUG
-    eureka: INFO
     ru.zeker: DEBUG
+
+app:
+  version: 1
 
 springdoc:
   api-docs:

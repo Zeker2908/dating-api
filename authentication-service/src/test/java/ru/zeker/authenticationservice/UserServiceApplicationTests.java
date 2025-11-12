@@ -1,10 +1,10 @@
-package ru.zeker.discovery_service;
+package ru.zeker.authenticationservice;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class DiscoveryServiceApplicationTests {
+class UserServiceApplicationTests {
 
 	@Test
 	void contextLoads() {

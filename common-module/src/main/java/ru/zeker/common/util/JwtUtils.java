@@ -9,6 +9,7 @@
     import lombok.RequiredArgsConstructor;
     import ru.zeker.common.config.JwtProperties;
 
+    import java.io.IOException;
     import java.security.Key;
     import java.security.KeyFactory;
     import java.security.NoSuchAlgorithmException;
@@ -31,11 +32,13 @@
         @PostConstruct
         public void init() {
             try {
-                String key = jwtProperties.getPublicKey();
-                if (key.isEmpty()) {
-                    throw new IllegalStateException("Открытый ключ не задан");
+                if (jwtProperties.getPublicKeyPath() == null || !jwtProperties.getPublicKeyPath().exists()) {
+                    throw new IllegalStateException("Приватный ключ не задан");
                 }
-                String publicKeyPEM = key
+
+                String publicKeyContent = new String(jwtProperties.getPublicKeyPath().getInputStream().readAllBytes());
+
+                String publicKeyPEM = publicKeyContent
                         .replace("-----BEGIN PUBLIC KEY-----", "")
                         .replace("-----END PUBLIC KEY-----", "")
                         .replaceAll("\\s+", "");
@@ -53,7 +56,7 @@
                 throw new IllegalStateException("Алгоритм EC не поддерживается", e);
             } catch (InvalidKeySpecException e) {
                 throw new IllegalStateException("Некорректный формат ключа", e);
-            } catch (IllegalArgumentException e) {
+            } catch (IllegalArgumentException | IOException e) {
                 throw new IllegalStateException("Ошибка декодирования Base64", e);
             }
         }
